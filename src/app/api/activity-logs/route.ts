@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
 import { activityLogs } from '@/lib/db';
 import { desc } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = requireAuth(request, 3);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
   try {
     const data = await db.select().from(activityLogs).orderBy(desc(activityLogs.timestamp));
     return NextResponse.json(data);
@@ -14,6 +20,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = requireAuth(request, 3);
+  if ('response' in auth) {
+    return auth.response;
+  }
   try {
     const body = await request.json();
     await db.insert(activityLogs).values({

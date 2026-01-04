@@ -72,6 +72,13 @@ npm run dev
 
 Otvori [http://localhost:3000](http://localhost:3000) u pregledniku.
 
+## 🧰 Lokalna baza i nalozi (dev)
+
+- Inicijalizacija/seed lokalne SQLite baze: `npm run setup-db`
+- Podrazumevani admin (posle setup-a): `admin@isplate.rs` / `admin123`
+- Kreiranje korisnika: `npm run create-user` (koristi `EMAIL/PASSWORD/NAME/ROLE` env var)
+- Reset lozinke: `npm run reset-password` (koristi `EMAIL/PASSWORD` env var)
+
 ## 📱 Struktura aplikacije
 
 ### Levi sidebar

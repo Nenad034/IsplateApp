@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
 import { payments } from '@/lib/db';
 import { eq, isNull, or } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  const auth = requireAuth(request, 3);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const showDeleted = searchParams.get('showDeleted') === 'true';
@@ -29,6 +35,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = requireAuth(request, 2);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
     await db.insert(payments).values({
@@ -57,6 +68,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = requireAuth(request, 2);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
     await db.update(payments).set({
@@ -87,6 +103,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, user, hardDelete } = body;
+    const auth = requireAuth(request, hardDelete ? 1 : 2);
+    if ('response' in auth) {
+      return auth.response;
+    }
     
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
     
@@ -111,6 +131,11 @@ export async function DELETE(request: NextRequest) {
 
 // PATCH - Vrati obrisane podatke
 export async function PATCH(request: NextRequest) {
+  const auth = requireAuth(request, 2);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
     const { id } = body;

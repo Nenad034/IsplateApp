@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
-import { join } from 'path';
+import path from 'node:path';
 import bcrypt from 'bcryptjs';
 
-const dbPath = join(process.cwd(), 'prisma', 'dev.db');
+const dbPath = path.join(process.cwd(), 'prisma', 'dev.db');
 const db = new Database(dbPath);
 
 console.log('Initializing database at:', dbPath);
@@ -14,7 +14,7 @@ const nowMsSql = "(CAST(strftime('%s','now') AS INTEGER) * 1000)";
 
 db.exec(`
   DROP TABLE IF EXISTS activity_logs;
-  
+
   CREATE TABLE IF NOT EXISTS suppliers (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -78,7 +78,7 @@ db.exec(`
 `);
 
 const insertAdmin = db.prepare(
-  `INSERT OR IGNORE INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)`
+  'INSERT OR IGNORE INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)'
 );
 
 insertAdmin.run('1', 'Admin Korisnik', 'admin@isplate.rs', hashedAdminPassword, 1);

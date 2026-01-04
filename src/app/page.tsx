@@ -1,17 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Building2, CreditCard, PieChart, Users, Activity, Settings, ChevronDown,
-  Plus, Download, Upload, Search, Calendar, LogOut, Menu, X, Eye, Trash2,
-  Edit2, Filter, TrendingUp, DollarSign, BarChart3, Zap, ShieldCheck, Map as MapIcon,
-  MessageCircle, Send, Brain, Maximize2, Minimize2, Move
+  Plus, Download, Upload, Search, Calendar, LogOut, Menu, X, Trash2,
+  Edit2, Filter, TrendingUp, DollarSign, ShieldCheck, Map as MapIcon,
+  MessageCircle, Send, Brain
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-
-type AccessLevel = 1 | 2 | 3;
+import { AccessLevel } from '@/types/access';
 type Currency = 'USD' | 'EUR' | 'RSD';
 
 interface Supplier {
@@ -86,7 +85,18 @@ interface ActivityLog {
   details: string;
 }
 
+type ImportRow = Record<string, string | number | null | undefined>;
+type AiTrainingRow = { question: string; answer: string };
+
 const themes = ['github-dark', 'github-dark-dimmed', 'github-dark-blue', 'github-light'];
+const moduleTabs = [
+  { id: 'overview', label: 'Kontrolna tabla', icon: PieChart },
+  { id: 'payments', label: 'Isplate i transakcije', icon: CreditCard },
+  { id: 'suppliers', label: 'Baza dobavljača', icon: Users },
+  { id: 'hotels', label: 'Baza hotela', icon: Building2 },
+  { id: 'users', label: 'Korisnici', icon: ShieldCheck },
+  { id: 'settings', label: 'Podešavanja', icon: Settings },
+] as const;
 const roleNames: Record<AccessLevel, string> = { 1: 'Admin', 2: 'Editor', 3: 'Viewer' };
 
 export default function DashboardPage() {
@@ -214,22 +224,36 @@ export default function DashboardPage() {
     role: 3,
   });
 
-  const fetchData = async () => {
+  const parseJson = useCallback(async (response: Response) => {
+    if (!response.ok) {
+      if (response.status === 401) {
+        return null;
+      }
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.error || 'Došlo je do greške pri preuzimanju podataka.');
+    }
+    return response.json();
+  }, []);
+
+  const fetchAndParse = useCallback(async (url: string) => {
+    const response = await fetch(url);
+    return parseJson(response);
+  }, [parseJson]);
+
+  const fetchData = useCallback(async () => {
     try {
       const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
-      const [suppliersRes, hotelsRes, paymentsRes, logsRes, usersRes] = await Promise.all([
-        fetch(`/api/suppliers${showDelQuery}`),
-        fetch(`/api/hotels${showDelQuery}`),
-        fetch(`/api/payments${showDelQuery}`),
-        fetch('/api/activity-logs'),
-        fetch('/api/users')
+      const [suppliersData, hotelsData, paymentsData, logsData, usersData] = await Promise.all([
+        fetchAndParse(`/api/suppliers${showDelQuery}`),
+        fetchAndParse(`/api/hotels${showDelQuery}`),
+        fetchAndParse(`/api/payments${showDelQuery}`),
+        fetchAndParse('/api/activity-logs'),
+        fetchAndParse('/api/users'),
       ]);
 
-      const suppliersData = await suppliersRes.json();
-      const hotelsData = await hotelsRes.json();
-      const paymentsData = await paymentsRes.json();
-      const logsData = await logsRes.json();
-      const usersData = await usersRes.json();
+      if (!suppliersData || !hotelsData || !paymentsData || !logsData || !usersData) {
+        return;
+      }
 
       setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
       setHotels(Array.isArray(hotelsData) ? hotelsData : []);
@@ -238,17 +262,16 @@ export default function DashboardPage() {
       setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error) {
       console.error('Error fetching data:', error);
-    } finally {
-      setStorageReady(true);
     }
-  };
+  }, [fetchAndParse, showDeletedItems]);
 
   const fetchSuppliers = async () => {
     try {
       const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
-      const res = await fetch(`/api/suppliers${showDelQuery}`);
-      const data = await res.json();
-      setSuppliers(Array.isArray(data) ? data : []);
+      const data = await fetchAndParse(`/api/suppliers${showDelQuery}`);
+      if (data) {
+        setSuppliers(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error('Error fetching suppliers:', error);
     }
@@ -257,9 +280,10 @@ export default function DashboardPage() {
   const fetchHotels = async () => {
     try {
       const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
-      const res = await fetch(`/api/hotels${showDelQuery}`);
-      const data = await res.json();
-      setHotels(Array.isArray(data) ? data : []);
+      const data = await fetchAndParse(`/api/hotels${showDelQuery}`);
+      if (data) {
+        setHotels(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error('Error fetching hotels:', error);
     }
@@ -268,9 +292,10 @@ export default function DashboardPage() {
   const fetchPayments = async () => {
     try {
       const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
-      const res = await fetch(`/api/payments${showDelQuery}`);
-      const data = await res.json();
-      setPayments(Array.isArray(data) ? data : []);
+      const data = await fetchAndParse(`/api/payments${showDelQuery}`);
+      if (data) {
+        setPayments(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error('Error fetching payments:', error);
     }
@@ -278,27 +303,49 @@ export default function DashboardPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
-      const data = await res.json();
-      setUsers(Array.isArray(data) ? data : []);
+      const data = await fetchAndParse('/api/users');
+      if (data) {
+        setUsers(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
     }
   };
 
+  const handleUnauthorized = useCallback((message?: string) => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    setLoginError(message || '');
+    setStorageReady(true);
+  }, []);
+
+  const loadSession = useCallback(async () => {
+    try {
+      const response = await fetch('/api/me');
+      if (response.ok) {
+        const payload = await response.json();
+        setCurrentUser(payload.user);
+        setIsLoggedIn(true);
+      } else if (response.status === 401) {
+        handleUnauthorized();
+      } else {
+        const errorPayload = await response.json().catch(() => null);
+        console.error('Session validation failed:', errorPayload);
+        handleUnauthorized();
+      }
+    } catch (error) {
+      console.error('Session check failed:', error);
+      handleUnauthorized();
+    } finally {
+      setStorageReady(true);
+    }
+  }, [handleUnauthorized]);
+
   useEffect(() => {
     const theme = localStorage.getItem('theme') || 'github-dark';
     setCurrentTheme(theme);
     document.documentElement.setAttribute('data-theme', theme);
-    
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      setCurrentUser(user);
-      setIsLoggedIn(true);
-    }
 
-    // Load AI training data from localStorage
     const savedAiData = localStorage.getItem('isplateData');
     if (savedAiData) {
       const data = JSON.parse(savedAiData);
@@ -307,43 +354,76 @@ export default function DashboardPage() {
       }
     }
 
-    fetchData();
-  }, []);
+    loadSession();
+  }, [loadSession]);
 
-  // Osvježi podatke kada se promeni showDeletedItems
   useEffect(() => {
-    if (isLoggedIn && storageReady) {
+    if (isLoggedIn) {
       fetchData();
     }
-  }, [showDeletedItems]);
+  }, [fetchData, isLoggedIn]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const originalFetch = window.fetch;
+    const wrappedFetch: typeof fetch = async (input, init) => {
+      const response = await originalFetch(input, init);
+      const requestUrl = typeof input === 'string' ? input : input?.url;
+      if (
+        response.status === 401 &&
+        requestUrl?.startsWith(window.location.origin + '/api/') &&
+        !requestUrl.endsWith('/api/login')
+      ) {
+        handleUnauthorized('Sesija je istekla. Molimo prijavite se ponovo.');
+      }
+      return response;
+    };
+    window.fetch = wrappedFetch;
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [handleUnauthorized]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-    
+
     try {
-      // In a real app, this would be a POST to /api/login
-      // For now, we check against the users we fetched
-      const user = users.find(u => u.email === loginForm.email && u.password === loginForm.password);
-      
-      if (user) {
-        setCurrentUser(user);
-        setIsLoggedIn(true);
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        logActivity('Prijava na sistem', user.name);
-      } else {
-        setLoginError('Neispravan email ili lozinka');
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginForm.email, password: loginForm.password }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        setLoginError(payload.error || 'Neispravan email ili lozinka');
+        return;
       }
+
+      if (!payload.user) {
+        setLoginError('Korisnički podaci nisu dostupni.');
+        return;
+      }
+
+      setCurrentUser(payload.user);
+      setIsLoggedIn(true);
+      setLoginForm(prev => ({ ...prev, password: '' }));
+      logActivity('Prijava na sistem', payload.user.name);
     } catch (error) {
+      console.error('Login error:', error);
       setLoginError('Greška pri prijavi');
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (currentUser) logActivity('Odjava sa sistema', currentUser.name);
-    setIsLoggedIn(false);
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    handleUnauthorized();
   };
 
   // Handle mouse move for resizing
@@ -902,16 +982,20 @@ export default function DashboardPage() {
 
     reader.onload = async (e) => {
       const content = e.target?.result;
-      let data: any[] = [];
+      let data: ImportRow[] = [];
 
       try {
         if (extension === 'json') {
-          const parsed = JSON.parse(content as string);
-          data = Array.isArray(parsed) ? parsed : (parsed.data || []);
+          const parsed = JSON.parse(content as string) as ImportRow | { data?: ImportRow[] };
+          if (Array.isArray(parsed)) {
+            data = parsed;
+          } else if (Array.isArray(parsed?.data)) {
+            data = parsed.data;
+          }
         } else if (extension === 'xlsx' || extension === 'xls') {
           const workbook = XLSX.read(content, { type: 'binary' });
           const sheetName = workbook.SheetNames[0];
-          data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+          data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as ImportRow[];
         } else if (extension === 'xml') {
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(content as string, "text/xml");
@@ -920,7 +1004,7 @@ export default function DashboardPage() {
             // Try alternative structure
             const payments = xmlDoc.getElementsByTagName("payment");
             for (let i = 0; i < payments.length; i++) {
-              const obj: any = {};
+              const obj: ImportRow = {};
               for (let j = 0; j < payments[i].childNodes.length; j++) {
                 const node = payments[i].childNodes[j];
                 if (node.nodeType === 1) obj[node.nodeName] = node.textContent;
@@ -929,7 +1013,7 @@ export default function DashboardPage() {
             }
           } else {
             for (let i = 0; i < items.length; i++) {
-              const obj: any = {};
+              const obj: ImportRow = {};
               for (let j = 0; j < items[i].childNodes.length; j++) {
                 const node = items[i].childNodes[j];
                 if (node.nodeType === 1) obj[node.nodeName] = node.textContent;
@@ -999,104 +1083,6 @@ export default function DashboardPage() {
     }
   };
 
-  const importJSON = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target?.result as string);
-        if (Array.isArray(data.suppliers)) setSuppliers(data.suppliers);
-        if (Array.isArray(data.hotels)) setHotels(data.hotels);
-        if (Array.isArray(data.payments)) setPayments(data.payments);
-        if (Array.isArray(data.users)) setUsers(data.users);
-        saveToStorage('isplateData', data);
-        logActivity('Učitao podatke', 'JSON');
-      } catch (error) {
-        alert('Greška pri učitavanju JSON fajla');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // AI Assistant Functions
-  const processAiQuery = (query: string): string => {
-    const lowerQuery = query.toLowerCase();
-    
-    // Check training data first
-    const trainingMatch = aiTrainingData.find(item => 
-      item.question.toLowerCase().includes(lowerQuery) || lowerQuery.includes(item.question.toLowerCase())
-    );
-    if (trainingMatch) return trainingMatch.answer;
-
-    // Payments queries
-    if (lowerQuery.includes('ukupno') || lowerQuery.includes('total') || lowerQuery.includes('suma')) {
-      if (lowerQuery.includes('isplat')) {
-        const total = payments.reduce((sum, p) => sum + p.amount, 0);
-        return `Ukupan iznos svih isplata je: ${formatCurrency(total, 'EUR')} (${payments.length} isplata)`;
-      }
-    }
-
-    if (lowerQuery.includes('na čekanju') || lowerQuery.includes('pending')) {
-      const pending = payments.filter(p => p.status === 'pending');
-      const totalPending = pending.reduce((sum, p) => sum + p.amount, 0);
-      return `Trenutno ima ${pending.length} isplata na čekanju, ukupno ${formatCurrency(totalPending, 'EUR')}`;
-    }
-
-    if (lowerQuery.includes('isplaćeno') || lowerQuery.includes('completed')) {
-      const completed = payments.filter(p => p.status === 'completed');
-      const totalCompleted = completed.reduce((sum, p) => sum + p.amount, 0);
-      return `Ukupno isplaćeno: ${completed.length} isplata, ${formatCurrency(totalCompleted, 'EUR')}`;
-    }
-
-    // Supplier queries
-    if (lowerQuery.includes('dobavljač') || lowerQuery.includes('supplier')) {
-      if (lowerQuery.includes('broj') || lowerQuery.includes('koliko')) {
-        return `Trenutno imate ${suppliers.filter(s => !s.deleted).length} aktivnih dobavljača`;
-      }
-      const supplierName = suppliers.find(s => lowerQuery.includes(s.name.toLowerCase()));
-      if (supplierName) {
-        const supplierPayments = payments.filter(p => p.supplierId === supplierName.id);
-        const total = supplierPayments.reduce((sum, p) => sum + p.amount, 0);
-        return `Dobavljač ${supplierName.name}: ${supplierPayments.length} isplata, ukupno ${formatCurrency(total, 'EUR')}`;
-      }
-    }
-
-    // Hotel queries
-    if (lowerQuery.includes('hotel')) {
-      if (lowerQuery.includes('broj') || lowerQuery.includes('koliko')) {
-        return `Trenutno imate ${hotels.filter(h => !h.deleted).length} aktivnih hotela`;
-      }
-      const hotelName = hotels.find(h => lowerQuery.includes(h.name.toLowerCase()));
-      if (hotelName) {
-        const hotelPayments = payments.filter(p => p.hotelId === hotelName.id);
-        const total = hotelPayments.reduce((sum, p) => sum + p.amount, 0);
-        return `Hotel ${hotelName.name}: ${hotelPayments.length} isplata, ukupno ${formatCurrency(total, 'EUR')}`;
-      }
-    }
-
-    // Date range queries
-    if (lowerQuery.includes('danas')) {
-      const today = new Date().toISOString().split('T')[0];
-      const todayPayments = payments.filter(p => p.date === today);
-      return `Danas: ${todayPayments.length} isplata, ukupno ${formatCurrency(todayPayments.reduce((s,p) => s + p.amount, 0), 'EUR')}`;
-    }
-
-    if (lowerQuery.includes('ovog meseca') || lowerQuery.includes('ovaj mesec')) {
-      const thisMonth = new Date().toISOString().slice(0, 7);
-      const monthPayments = payments.filter(p => p.date.startsWith(thisMonth));
-      return `Ovog meseca: ${monthPayments.length} isplata, ukupno ${formatCurrency(monthPayments.reduce((s,p) => s + p.amount, 0), 'EUR')}`;
-    }
-
-    // Currency queries
-    if (lowerQuery.includes('valut')) {
-      const eur = payments.filter(p => p.currency === 'EUR').reduce((s,p) => s + p.amount, 0);
-      const usd = payments.filter(p => p.currency === 'USD').reduce((s,p) => s + p.amount, 0);
-      const rsd = payments.filter(p => p.currency === 'RSD').reduce((s,p) => s + p.amount, 0);
-      return `Isplate po valutama:\nEUR: ${formatCurrency(eur, 'EUR')}\nUSD: ${formatCurrency(usd, 'USD')}\nRSD: ${formatCurrency(rsd, 'RSD')}`;
-    }
-
-    return 'Nisam siguran kako da odgovorim na to pitanje. Možete me obučiti u podešavanjima (AI Obuka tab) ili pokušajte pitati o:\n- Ukupnim isplatama\n- Statusima (na čekanju/isplaćeno)\n- Konkretnim dobavljačima ili hotelima\n- Datumima (danas, ovog meseca)\n- Valutama';
-  };
-
   const handleAiSend = async () => {
     if (!aiInputMessage.trim() || aiIsLoading) return;
     
@@ -1149,13 +1135,15 @@ ${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
       } else {
         throw new Error('No answer received from AI');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('AI Error:', error);
-      const errorMsg = error?.message?.includes('API ključem') 
+      const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+      const normalized = message.toLowerCase();
+      const errorMsg = normalized.includes('api ključem')
         ? 'Problem sa API ključem. Kontaktirajte administratora.'
-        : error?.message?.includes('limit')
+        : normalized.includes('limit')
         ? 'Prekoračen limit poziva. Pokušajte kasnije.'
-        : error?.message?.includes('internet') || error?.message?.includes('network')
+        : normalized.includes('internet') || normalized.includes('network')
         ? 'Problem sa konekcijom. Proverite internet vezu.'
         : 'Došlo je do greške pri komunikaciji sa AI-jem. Molim pokušajte ponovo.';
       
@@ -1209,13 +1197,13 @@ ${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
     reader.onload = (e) => {
       try {
         const content = e.target?.result;
-        let data: any[] = [];
+        let data: AiTrainingRow[] = [];
 
         if (extension === 'json') {
-          data = JSON.parse(content as string);
+          data = JSON.parse(content as string) as AiTrainingRow[];
         } else if (extension === 'xlsx' || extension === 'xls') {
           const workbook = XLSX.read(content, { type: 'binary' });
-          data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+          data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as AiTrainingRow[];
         } else if (extension === 'xml') {
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(content as string, 'text/xml');
@@ -1233,6 +1221,7 @@ ${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
         logActivity('Uvezao AI trening podatke', `${data.length} stavki`);
         alert(`Uspešno uvezeno ${data.length} trening podataka`);
       } catch (error) {
+        console.error('AI training import failed:', error);
         alert('Greška pri uvozu AI trening podataka');
       }
     };
@@ -1242,56 +1231,6 @@ ${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
     } else {
       reader.readAsText(file);
     }
-  };
-
-  // Analitika po datumskom opsegu
-  const getAnalyticsByDateRange = () => {
-    if (!Array.isArray(payments)) return { supplierStats: [], hotelStats: [], countryList: [], filteredPayments: [] };
-
-    const filteredPayments = payments.filter(p => 
-      p.status === 'completed' && 
-      p.date >= analyticsFromDate && 
-      p.date <= analyticsToDate
-    );
-
-    // Po dobavljačima
-    const supplierStats = suppliers.map(supplier => {
-      const supplierPayments = filteredPayments.filter(p => p.supplierId === supplier.id);
-      return {
-        name: supplier.name,
-        count: supplierPayments.length,
-        total: supplierPayments.reduce((sum, p) => sum + p.amount, 0),
-      };
-    }).filter(s => s.count > 0).sort((a, b) => b.total - a.total);
-
-    // Po hotelima
-    const hotelStats = hotels.map(hotel => {
-      const hotelPayments = filteredPayments.filter(p => p.hotelId === hotel.id);
-      return {
-        name: hotel.name,
-        country: hotel.country || 'N/A',
-        count: hotelPayments.length,
-        total: hotelPayments.reduce((sum, p) => sum + p.amount, 0),
-      };
-    }).filter(h => h.count > 0).sort((a, b) => b.total - a.total);
-
-    // Po državama
-    const countryStats: Record<string, { count: number; total: number }> = {};
-    filteredPayments.forEach(payment => {
-      const hotel = hotels.find(h => h.id === payment.hotelId);
-      const country = hotel?.country || 'Neznano';
-      if (!countryStats[country]) {
-        countryStats[country] = { count: 0, total: 0 };
-      }
-      countryStats[country].count++;
-      countryStats[country].total += payment.amount;
-    });
-
-    const countryList = Object.entries(countryStats)
-      .map(([country, stats]) => ({ country, ...stats }))
-      .sort((a, b) => b.total - a.total);
-
-    return { supplierStats, hotelStats, countryList, filteredPayments };
   };
 
   const filteredPayments = Array.isArray(payments) ? payments.filter(p => {
@@ -1540,17 +1479,10 @@ ${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
           <div className="mb-10">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 px-2">Glavni moduli</h3>
             <nav className="space-y-2">
-              {[
-                { id: 'overview', label: 'Kontrolna tabla', icon: PieChart },
-                { id: 'payments', label: 'Isplate i transakcije', icon: CreditCard },
-                { id: 'suppliers', label: 'Baza dobavljača', icon: Users },
-                { id: 'hotels', label: 'Baza hotela', icon: Building2 },
-                { id: 'users', label: 'Korisnici', icon: ShieldCheck },
-                { id: 'settings', label: 'Podešavanja', icon: Settings },
-              ].map(item => (
+              {moduleTabs.map(item => (
                 <button
                   key={item.id}
-                  onClick={() => { setActiveTab(item.id as any); setSidebarOpen(false); }}
+                  onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
                   className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all group ${
                     activeTab === item.id 
                       ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
@@ -2115,7 +2047,7 @@ ${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Status</label>
                     <select
                       value={paymentForm.status || 'pending'}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, status: e.target.value as any })}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, status: e.target.value as Payment['status'] })}
                       className="w-full p-4 rounded-2xl modern-input text-lg"
                     >
                       <option value="pending">Na čekanju</option>
@@ -3649,10 +3581,10 @@ ${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
                 <div className="mt-6 space-y-2 text-left max-w-md mx-auto">
                   <p className="text-xs text-slate-600">Primeri pitanja:</p>
                   <div className="text-xs space-y-1 text-slate-500">
-                    <p>• "Koliko je ukupno isplata?"</p>
-                    <p>• "Koje isplate su na čekanju?"</p>
-                    <p>• "Koliko hotela imam?"</p>
-                    <p>• "Isplate danas?"</p>
+                    <p>• Koliko je ukupno isplata?</p>
+                    <p>• Koje isplate su na čekanju?</p>
+                    <p>• Koliko hotela imam?</p>
+                    <p>• Isplate danas?</p>
                   </div>
                 </div>
               </div>

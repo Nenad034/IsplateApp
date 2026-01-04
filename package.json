@@ -6,12 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "create-user": "node scripts/create-user.mjs",
+    "reset-password": "node scripts/reset-password.mjs",
+    "setup-db": "node scripts/setup-db.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.5.0",
     "drizzle-orm": "^0.45.1",
+    "jsonwebtoken": "^9.0.3",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.562.0",

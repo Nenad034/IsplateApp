@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { requireAuth } from '@/lib/auth';
 
 // Simple local AI fallback when Gemini is unavailable
 function processLocalQuery(query: string, context: string): string {
@@ -57,6 +58,11 @@ function processLocalQuery(query: string, context: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = requireAuth(request, 3);
+  if ('response' in auth) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
     const { query, context } = body;
@@ -98,8 +104,9 @@ Odgovori KRATKO i PRECIZNO na srpskom jeziku. Koristi podatke iznad za tačan od
           console.log('Gemini response received');
           return NextResponse.json({ answer: text || 'Nisam dobio odgovor.' });
         }
-      } catch (geminiError: any) {
-        console.log('Gemini unavailable, using local fallback:', geminiError?.message?.substring(0, 80));
+      } catch (geminiError) {
+        const message = geminiError instanceof Error ? geminiError.message : typeof geminiError === 'string' ? geminiError : 'unknown';
+        console.log('Gemini unavailable, using local fallback:', message.substring(0, 80));
         // Fall through to local processing
       }
     }
@@ -109,8 +116,9 @@ Odgovori KRATKO i PRECIZNO na srpskom jeziku. Koristi podatke iznad za tačan od
     const localAnswer = processLocalQuery(query, context || '');
     return NextResponse.json({ answer: localAnswer });
     
-  } catch (error: any) {
-    console.error('AI Error:', error?.message);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'unknown';
+    console.error('AI Error:', message);
     return NextResponse.json(
       { error: 'Došlo je do greške.' },
       { status: 500 }
