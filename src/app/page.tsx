@@ -677,7 +677,7 @@ export default function DashboardPage() {
     }));
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Uplate');
+    XLSX.utils.book_append_sheet(wb, ws, 'Isplate');
     XLSX.writeFile(wb, `isplate-${Date.now()}.xlsx`);
     logActivity('Izvozio podatke', 'Excel');
   };
@@ -1193,7 +1193,7 @@ export default function DashboardPage() {
             <nav className="space-y-2">
               {[
                 { id: 'overview', label: 'Kontrolna tabla', icon: PieChart },
-                { id: 'payments', label: 'Uplate i transakcije', icon: CreditCard },
+                { id: 'payments', label: 'Isplate i transakcije', icon: CreditCard },
                 { id: 'suppliers', label: 'Baza dobavljača', icon: Users },
                 { id: 'hotels', label: 'Baza hotela', icon: Building2 },
                 { id: 'users', label: 'Korisnici', icon: ShieldCheck },
@@ -1253,7 +1253,7 @@ export default function DashboardPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
             <input
               type="text"
-              placeholder="Pretražite uplate, dobavljače ili hotele..."
+              placeholder="Pretražite isplate, dobavljače ili hotele..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-12 py-3 rounded-2xl modern-input text-lg outline-none transition-all"
@@ -1298,7 +1298,7 @@ export default function DashboardPage() {
                     ← Nazad na kontrolnu tablu
                   </button>
                   <h2 className="text-4xl font-black tracking-tight">
-                    {activeSummaryView === 'suppliers' ? 'Uplate po dobavljačima' : 
+                    {activeSummaryView === 'suppliers' ? 'Isplate po dobavljačima' : 
                      activeSummaryView === 'hotels' ? 'Isplate po hotelima' : 'Isplate po državama'}
                   </h2>
                   <p className="text-xl text-slate-500 mt-2">
@@ -1429,7 +1429,7 @@ export default function DashboardPage() {
                 {[
                   { label: 'Dobavljači', value: stats.totalSuppliers, icon: Users, color: 'blue' },
                   { label: 'Hoteli', value: stats.totalHotels, icon: Building2, color: 'purple' },
-                  { label: 'Uplate', value: `${stats.completedPayments}/${stats.totalPayments}`, icon: CreditCard, color: 'emerald' },
+                  { label: 'Isplate', value: `${stats.completedPayments}/${stats.totalPayments}`, icon: CreditCard, color: 'emerald' },
                   { label: 'Ukupno USD', value: formatCurrency(stats.totalUSD, 'USD'), icon: DollarSign, color: 'amber' },
                   { label: 'Ukupno EUR', value: formatCurrency(stats.totalEUR, 'EUR'), icon: DollarSign, color: 'blue' },
                   { label: 'Ukupno RSD', value: formatCurrency(stats.totalRSD, 'RSD'), icon: DollarSign, color: 'emerald' },
@@ -1452,7 +1452,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="glass-card p-8">
                   <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-2xl font-bold">Nedavne uplate</h3>
+                    <h3 className="text-2xl font-bold">Nedavne isplate</h3>
                     <button 
                       onClick={() => setActiveTab('payments')}
                       className="text-blue-400 hover:underline font-semibold text-lg"
@@ -1523,7 +1523,7 @@ export default function DashboardPage() {
             <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-4xl font-black tracking-tight mb-2">Uplate</h2>
+                  <h2 className="text-4xl font-black tracking-tight mb-2">Isplate</h2>
                   <p className="text-xl text-slate-500">Upravljajte svim transakcijama i isplatama dobavljačima.</p>
                 </div>
                 <div className="flex gap-3">
@@ -1536,7 +1536,7 @@ export default function DashboardPage() {
                     }`}
                   >
                     {showPaymentForm ? <X size={20} /> : <Plus size={20} />}
-                    {showPaymentForm ? 'Zatvori formu' : 'Nova uplata'}
+                    {showPaymentForm ? 'Zatvori formu' : 'Nova isplata'}
                   </button>
                   <button onClick={() => exportToPDF()} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border hover:bg-white/10 transition-all text-lg font-semibold" style={{ borderColor: 'var(--border-color)' }}>
                     <Download size={20} /> PDF
@@ -1720,7 +1720,7 @@ export default function DashboardPage() {
                 <div className="space-y-2 mb-6">
                   <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Opis</label>
                   <textarea
-                    placeholder="Dodatne informacije o uplati..."
+                    placeholder="Dodatne informacije o isplati..."
                     value={paymentForm.description || ''}
                     onChange={(e) => setPaymentForm({ ...paymentForm, description: e.target.value })}
                     className="w-full p-4 rounded-2xl modern-input text-lg h-24 resize-none"
@@ -1792,7 +1792,7 @@ export default function DashboardPage() {
                   onClick={addPayment}
                   className="w-full p-5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xl font-black hover:from-blue-500 hover:to-blue-400 transition-all shadow-xl shadow-blue-500/25"
                 >
-                  {editingId ? 'Ažuriraj podatke o uplati' : 'Potvrdi i sačuvaj uplatu'}
+                  {editingId ? 'Ažuriraj podatke o isplati' : 'Potvrdi i sačuvaj isplatu'}
                 </button>
               </div>
               )}
