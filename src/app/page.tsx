@@ -20,6 +20,7 @@ interface Supplier {
   phone: string;
   address: string;
   bankAccount: string;
+  contactPerson?: string;
   latitude?: number;
   longitude?: number;
   country?: string;
@@ -36,6 +37,7 @@ interface Hotel {
   phone: string;
   manager: string;
   country: string;
+  contactPerson?: string;
   latitude?: number;
   longitude?: number;
   deleted?: boolean;
@@ -142,6 +144,7 @@ export default function DashboardPage() {
     phone: '',
     address: '',
     bankAccount: '',
+    contactPerson: '',
     latitude: undefined,
     longitude: undefined,
     country: '',
@@ -157,6 +160,7 @@ export default function DashboardPage() {
     phone: '',
     manager: '',
     country: '',
+    contactPerson: '',
     latitude: undefined,
     longitude: undefined,
   });
@@ -1960,9 +1964,15 @@ export default function DashboardPage() {
                     <input type="text" placeholder="Ulica i broj, Grad" value={supplierForm.address || ''} onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
                   </div>
                 </div>
-                <div className="space-y-2 mb-8">
-                  <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Bankovni račun (IBAN)</label>
-                  <input type="text" placeholder="RS35..." value={supplierForm.bankAccount || ''} onChange={(e) => setSupplierForm({ ...supplierForm, bankAccount: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Bankovni račun (IBAN)</label>
+                    <input type="text" placeholder="RS35..." value={supplierForm.bankAccount || ''} onChange={(e) => setSupplierForm({ ...supplierForm, bankAccount: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Kontakt osoba</label>
+                    <input type="text" placeholder="Ime i prezime" value={supplierForm.contactPerson || ''} onChange={(e) => setSupplierForm({ ...supplierForm, contactPerson: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
+                  </div>
                 </div>
                 <button onClick={addSupplier} className="w-full p-5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 text-white text-xl font-black hover:from-purple-500 hover:to-purple-400 transition-all shadow-xl shadow-purple-500/25">
                   {editingId ? 'Sačuvaj izmene' : 'Dodaj novog dobavljača'}
@@ -2084,10 +2094,14 @@ export default function DashboardPage() {
                     <input type="text" placeholder="+381..." value={hotelForm.phone || ''} onChange={(e) => setHotelForm({ ...hotelForm, phone: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Menadžer</label>
                     <input type="text" placeholder="Ime i prezime" value={hotelForm.manager || ''} onChange={(e) => setHotelForm({ ...hotelForm, manager: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Kontakt osoba</label>
+                    <input type="text" placeholder="Ime i prezime" value={hotelForm.contactPerson || ''} onChange={(e) => setHotelForm({ ...hotelForm, contactPerson: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Država</label>

@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       rooms: body.rooms,
       phone: body.phone,
       manager: body.manager,
+      contactPerson: body.contactPerson,
       latitude: body.latitude,
       longitude: body.longitude,
     });
@@ -53,6 +54,7 @@ export async function PUT(request: NextRequest) {
       rooms: body.rooms,
       phone: body.phone,
       manager: body.manager,
+      contactPerson: body.contactPerson,
       latitude: body.latitude,
       longitude: body.longitude,
     }).where(eq(hotels.id, body.id));
