@@ -2672,67 +2672,68 @@ export default function DashboardPage() {
                 ))}
               </div>
             </section>
+          </div>
 
-            <section className="pt-8 border-t" style={{ borderColor: 'var(--border-color)' }}>
-              <div className="mb-6 space-y-4">
-                <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Filtriraj po datumu</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase">Od</label>
-                    <input 
-                      type="date" 
-                      value={analyticsFromDate}
-                      onChange={(e) => setAnalyticsFromDate(e.target.value)}
-                      className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase">Do</label>
-                    <input 
-                      type="date" 
-                      value={analyticsToDate}
-                      onChange={(e) => setAnalyticsToDate(e.target.value)}
-                      className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-sm"
-                    />
-                  </div>
+          {/* Filters Section - Fixed at Bottom */}
+          <div className="p-8 pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="mb-6 space-y-4">
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Filtriraj po datumu</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase">Od</label>
+                  <input 
+                    type="date" 
+                    value={analyticsFromDate}
+                    onChange={(e) => setAnalyticsFromDate(e.target.value)}
+                    className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-600 uppercase">Do</label>
+                  <input 
+                    type="date" 
+                    value={analyticsToDate}
+                    onChange={(e) => setAnalyticsToDate(e.target.value)}
+                    className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-sm"
+                  />
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <button 
-                  onClick={() => {
-                    setActiveTab('overview');
-                    setActiveSummaryView('suppliers');
-                  }}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
-                >
-                  <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Po dobavljačima</h4>
-                  <ChevronDown size={18} className="text-slate-500 group-hover:text-blue-400 -rotate-90" />
-                </button>
+            <div className="space-y-2">
+              <button 
+                onClick={() => {
+                  setActiveTab('overview');
+                  setActiveSummaryView('suppliers');
+                }}
+                className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
+              >
+                <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Po dobavljačima</h4>
+                <ChevronDown size={18} className="text-slate-500 group-hover:text-blue-400 -rotate-90" />
+              </button>
 
-                <button 
-                  onClick={() => {
-                    setActiveTab('overview');
-                    setActiveSummaryView('hotels');
-                  }}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
-                >
-                  <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Po hotelima</h4>
-                  <ChevronDown size={18} className="text-slate-500 group-hover:text-purple-400 -rotate-90" />
-                </button>
+              <button 
+                onClick={() => {
+                  setActiveTab('overview');
+                  setActiveSummaryView('hotels');
+                }}
+                className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
+              >
+                <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Po hotelima</h4>
+                <ChevronDown size={18} className="text-slate-500 group-hover:text-purple-400 -rotate-90" />
+              </button>
 
-                <button 
-                  onClick={() => {
-                    setActiveTab('overview');
-                    setActiveSummaryView('countries');
-                  }}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
-                >
-                  <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Po državama</h4>
-                  <ChevronDown size={18} className="text-slate-500 group-hover:text-emerald-400 -rotate-90" />
-                </button>
-              </div>
-            </section>
+              <button 
+                onClick={() => {
+                  setActiveTab('overview');
+                  setActiveSummaryView('countries');
+                }}
+                className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group"
+              >
+                <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Po državama</h4>
+                <ChevronDown size={18} className="text-slate-500 group-hover:text-emerald-400 -rotate-90" />
+              </button>
+            </div>
           </div>
 
           {/* Resize Handle Right */}
