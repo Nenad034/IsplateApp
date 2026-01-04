@@ -101,8 +101,8 @@ export default function DashboardPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [analyticsFromDate, setAnalyticsFromDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [analyticsToDate, setAnalyticsToDate] = useState(new Date().toISOString().split('T')[0]);
-  const [leftSidebarWidth, setLeftSidebarWidth] = useState(374); // Increased by 30% from 288
-  const [rightSidebarWidth, setRightSidebarWidth] = useState(500); // Increased by 30% from 384
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(500);
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(500);
   const [isResizingLeft, setIsResizingLeft] = useState(false);
   const [isResizingRight, setIsResizingRight] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
