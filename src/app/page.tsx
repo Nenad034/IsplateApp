@@ -53,7 +53,8 @@ interface Payment {
   currency: Currency;
   date: string;
   description: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed';
+  dueDate?: string;
   method: string;
   bankName?: string;
   serviceType?: string;
@@ -113,6 +114,7 @@ export default function DashboardPage() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [settingsView, setSettingsView] = useState<'general' | 'logs' | 'deleted'>('general');
   const [showDeletedItems, setShowDeletedItems] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   useEffect(() => {
     if (activeTab !== 'overview') {
@@ -129,6 +131,7 @@ export default function DashboardPage() {
     date: new Date().toISOString().split('T')[0],
     description: '',
     status: 'pending',
+    dueDate: '',
     method: 'Bankarska transakcija',
     bankName: '',
     serviceType: '',
@@ -491,6 +494,7 @@ export default function DashboardPage() {
       date: paymentForm.date || new Date().toISOString().split('T')[0],
       description: paymentForm.description || '',
       status: paymentForm.status || 'pending',
+      dueDate: paymentForm.dueDate || '',
       method: paymentForm.method || 'Bankarska transakcija',
       bankName: paymentForm.bankName || '',
       serviceType: paymentForm.serviceType || '',
@@ -520,6 +524,7 @@ export default function DashboardPage() {
           date: new Date().toISOString().split('T')[0],
           description: '',
           status: 'pending',
+          dueDate: '',
           method: 'Bankarska transakcija',
           bankName: '',
           serviceType: '',
@@ -972,8 +977,9 @@ export default function DashboardPage() {
     toDate.setHours(0, 0, 0, 0);
 
     const matchesDate = paymentDate >= fromDate && paymentDate <= toDate;
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     
-    return matchesSearch && matchesDate;
+    return matchesSearch && matchesDate && matchesStatus;
   }) : [];
 
   const stats = {
@@ -985,6 +991,14 @@ export default function DashboardPage() {
     totalRSD: filteredPayments.filter(p => p.currency === 'RSD').reduce((sum, p) => sum + p.amount, 0),
     totalRawAmount: filteredPayments.reduce((sum, p) => sum + p.amount, 0),
     completedPayments: filteredPayments.filter(p => p.status === 'completed').length,
+    pendingPayments: filteredPayments.filter(p => p.status === 'pending').length,
+    // Statistika po statusima i valutama
+    pendingUSD: filteredPayments.filter(p => p.status === 'pending' && p.currency === 'USD').reduce((sum, p) => sum + p.amount, 0),
+    pendingEUR: filteredPayments.filter(p => p.status === 'pending' && p.currency === 'EUR').reduce((sum, p) => sum + p.amount, 0),
+    pendingRSD: filteredPayments.filter(p => p.status === 'pending' && p.currency === 'RSD').reduce((sum, p) => sum + p.amount, 0),
+    completedUSD: filteredPayments.filter(p => p.status === 'completed' && p.currency === 'USD').reduce((sum, p) => sum + p.amount, 0),
+    completedEUR: filteredPayments.filter(p => p.status === 'completed' && p.currency === 'EUR').reduce((sum, p) => sum + p.amount, 0),
+    completedRSD: filteredPayments.filter(p => p.status === 'completed' && p.currency === 'RSD').reduce((sum, p) => sum + p.amount, 0),
   };
 
   const formatCurrency = (amount: number, currency: string) => {
@@ -1449,6 +1463,66 @@ export default function DashboardPage() {
                 ))}
               </div>
 
+              {/* Statistika po statusima */}
+              <div className="glass-card p-8">
+                <h3 className="text-2xl font-bold mb-6">Pregled isplata po statusima</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Na čekanju */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                        <Activity size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold">Na čekanju</h4>
+                        <p className="text-sm text-slate-500">{stats.pendingPayments} isplata</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                        <span className="font-semibold">USD</span>
+                        <span className="text-xl font-bold text-amber-400">{formatCurrency(stats.pendingUSD, 'USD')}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                        <span className="font-semibold">EUR</span>
+                        <span className="text-xl font-bold text-amber-400">{formatCurrency(stats.pendingEUR, 'EUR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                        <span className="font-semibold">RSD</span>
+                        <span className="text-xl font-bold text-amber-400">{formatCurrency(stats.pendingRSD, 'RSD')}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Isplaćeno */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <ShieldCheck size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold">Isplaćeno</h4>
+                        <p className="text-sm text-slate-500">{stats.completedPayments} isplata</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                        <span className="font-semibold">USD</span>
+                        <span className="text-xl font-bold text-emerald-400">{formatCurrency(stats.completedUSD, 'USD')}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                        <span className="font-semibold">EUR</span>
+                        <span className="text-xl font-bold text-emerald-400">{formatCurrency(stats.completedEUR, 'EUR')}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                        <span className="font-semibold">RSD</span>
+                        <span className="text-xl font-bold text-emerald-400">{formatCurrency(stats.completedRSD, 'RSD')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="glass-card p-8">
                   <div className="flex items-center justify-between mb-8">
@@ -1684,11 +1758,24 @@ export default function DashboardPage() {
                       onChange={(e) => setPaymentForm({ ...paymentForm, status: e.target.value as any })}
                       className="w-full p-4 rounded-2xl modern-input text-lg"
                     >
-                      <option value="pending">U čekanju</option>
-                      <option value="completed">Završena</option>
-                      <option value="failed">Neuspešna</option>
+                      <option value="pending">Na čekanju</option>
+                      <option value="completed">Isplaćeno</option>
                     </select>
                   </div>
+                  
+                  {/* Prikaži polje za datum plaćanja samo ako je status "Na čekanju" */}
+                  {paymentForm.status === 'pending' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Rok za isplatu</label>
+                      <input
+                        type="date"
+                        value={paymentForm.dueDate || ''}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, dueDate: e.target.value })}
+                        className="w-full p-4 rounded-2xl modern-input text-lg"
+                      />
+                    </div>
+                  )}
+                  
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Metoda</label>
                     <select
@@ -1836,7 +1923,14 @@ export default function DashboardPage() {
                               {payment.bankName && ` (${payment.bankName})`}
                             </p>
                           </td>
-                          <td className="p-6 text-lg">{payment.date}</td>
+                          <td className="p-6">
+                            <p className="text-lg">{payment.date}</p>
+                            {payment.status === 'pending' && payment.dueDate && (
+                              <p className="text-xs text-amber-400 font-semibold mt-1">
+                                Rok: {payment.dueDate}
+                              </p>
+                            )}
+                          </td>
                           <td className="p-6">
                             <div className="flex flex-wrap gap-2 max-w-[200px]">
                               {Array.isArray(payment.reservations) ? payment.reservations.map((res, idx) => (
@@ -1849,14 +1943,12 @@ export default function DashboardPage() {
                           <td className="p-6">
                             <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${
                               payment.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                              payment.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                              'bg-red-500/10 text-red-400 border border-red-500/20'
+                              'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                             }`}>
                               <div className={`w-2 h-2 rounded-full ${
-                                payment.status === 'completed' ? 'bg-emerald-400' :
-                                payment.status === 'pending' ? 'bg-amber-400' : 'bg-red-400'
+                                payment.status === 'completed' ? 'bg-emerald-400' : 'bg-amber-400'
                               }`} />
-                              {payment.status === 'completed' ? 'Završena' : payment.status === 'pending' ? 'U čekanju' : 'Neuspešna'}
+                              {payment.status === 'completed' ? 'Isplaćeno' : 'Na čekanju'}
                             </span>
                           </td>
                           <td className="p-6">
@@ -2688,6 +2780,42 @@ export default function DashboardPage() {
                     className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-sm"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="mb-6 space-y-4">
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Filtriraj po statusu</h4>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`p-3 rounded-xl text-xs font-bold transition-all ${
+                    statusFilter === 'all' 
+                      ? 'bg-blue-500/20 text-blue-400 border-2 border-blue-500' 
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  SVE
+                </button>
+                <button
+                  onClick={() => setStatusFilter('pending')}
+                  className={`p-3 rounded-xl text-xs font-bold transition-all ${
+                    statusFilter === 'pending' 
+                      ? 'bg-amber-500/20 text-amber-400 border-2 border-amber-500' 
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  NA ČEKANJU
+                </button>
+                <button
+                  onClick={() => setStatusFilter('completed')}
+                  className={`p-3 rounded-xl text-xs font-bold transition-all ${
+                    statusFilter === 'completed' 
+                      ? 'bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500' 
+                      : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  ISPLAĆENO
+                </button>
               </div>
             </div>
 
