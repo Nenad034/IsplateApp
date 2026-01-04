@@ -1,0 +1,17 @@
+<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
+- [x] Verify that the copilot-instructions.md file in the .github directory is created.
+- [x] Clarify Project Requirements
+- [x] Scaffold the Project
+- [x] Customize the Project
+- [x] Install Required Extensions
+- [x] Compile the Project
+- [x] Create and Run Task
+- [x] Launch the Project
+- [x] Implement Advanced Features
+	- Added 4 color themes (Dark, Midnight, Pink, Mint).
+	- Implemented Access Control Levels (1: Admin, 2: Editor, 3: Viewer).
+	- Added Global Search across all data tabs.
+	- Integrated Bank Database and Payment Methods.
+	- Restricted Export functionality to Admin only.
+	- Added Data Import (JSON, Excel, XML) for Admin and Editor.
+- [x] Ensure Documentation is Complete

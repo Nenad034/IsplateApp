@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --transition-speed: 0.4s;
+  --transition-curve: cubic-bezier(0.4, 0, 0.2, 1);
+  --radius-default: 1rem;
+  --radius-lg: 1.5rem;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.2);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* --- THEME DEFINITIONS --- */
+
+/* Modern Dark (Deep Blue/Slate) */
+[data-theme="github-dark"] {
+  --bg-main: #0f172a;
+  --bg-sidebar: #1e293b;
+  --bg-sidebar-hover: #334155;
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-accent: #38bdf8;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --accent-color: #0ea5e9;
+  --state-success: #10b981;
+  --state-danger: #ef4444;
+  --glass-bg: rgba(15, 23, 42, 0.8);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Modern Dimmed (Charcoal) */
+[data-theme="github-dark-dimmed"] {
+  --bg-main: #18181b;
+  --bg-sidebar: #27272a;
+  --bg-sidebar-hover: #3f3f46;
+  --card-bg: rgba(39, 39, 42, 0.7);
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-accent: #a855f7;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --accent-color: #8b5cf6;
+  --state-success: #22c55e;
+  --state-danger: #f43f5e;
+  --glass-bg: rgba(24, 24, 27, 0.8);
 }
 
+/* Modern Blue (Ocean) */
+[data-theme="github-dark-blue"] {
+  --bg-main: #0c4a6e;
+  --bg-sidebar: #075985;
+  --bg-sidebar-hover: #0369a1;
+  --card-bg: rgba(7, 89, 133, 0.7);
+  --text-main: #f0f9ff;
+  --text-muted: #bae6fd;
+  --text-accent: #7dd3fc;
+  --border-color: rgba(255, 255, 255, 0.12);
+  --accent-color: #0284c7;
+  --state-success: #4ade80;
+  --state-danger: #fb7185;
+  --glass-bg: rgba(12, 74, 110, 0.8);
+}
+
+/* Modern Light (Clean White) */
+[data-theme="github-light"] {
+  --bg-main: #f8fafc;
+  --bg-sidebar: #ffffff;
+  --bg-sidebar-hover: #f1f5f9;
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-accent: #2563eb;
+  --border-color: rgba(0, 0, 0, 0.05);
+  --accent-color: #3b82f6;
+  --state-success: #059669;
+  --state-danger: #dc2626;
+  --glass-bg: rgba(255, 255, 255, 0.9);
+}
+
+/* --- BASE STYLES --- */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color var(--transition-speed), color var(--transition-speed);
+  -webkit-font-smoothing: antialiased;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-default);
+}
+
+.glass-sidebar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-color);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+.modern-input {
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+.modern-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
+  outline: none;
+}
+
+.modern-button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.modern-button:active {
+  transform: translateY(0);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

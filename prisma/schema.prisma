@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String
+  address     String
+  bankAccount String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  payments    Payment[]
+}
+
+model Hotel {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  country   String
+  rooms     Int
+  phone     String
+  manager   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payments  Payment[]
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  amount     Float
+  currency   String   @default("USD")
+  date       String
+  description String
+  status     String   @default("pending")
+  method     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId String
+  
+  hotel      Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotelId    String
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      Int      @default(3)
+  lastLogin DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  details   String
+  user      String
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+}

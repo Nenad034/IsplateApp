@@ -1,33 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IsplateApp - Sistem za upravljanje uplatama
 
-## Getting Started
+Moderna aplikacija za upravljanje uplatama dobavljačima i hotelima sa naprednim mogućnostima analize i izvoza podataka.
 
-First, run the development server:
+## 🚀 Funkcionalnosti
+
+### 💰 Upravljanje uplatama
+- Kreiraj, uredi i briši uplate
+- Prati status uplata (U čekanju, Završena, Neuspešna)
+- Podrška za više valuta (USD, EUR, RSD)
+- Automatsko logovanje svih akcija
+
+### 🏢 Dobavljači
+- Kompletan katalog dobavljača
+- Čuvanje kontaktnih informacija i bankovnih računa
+- Brza pretraga i filtriranje
+
+### 🏨 Hoteli
+- Upravljanje hotelima
+- Prati broj soba i menadžere
+- Povezivanje sa uplatama
+
+### 👥 Korisnici
+- Sistem uloga (Admin: 1, Editor: 2, Viewer: 3)
+- Praćenje prijava korisnika
+
+### 📊 Analitika
+- Pregled statusa baze podataka
+- Finansijski puls sa ključnim metrikama
+- Brza analitika (prosečne uplate, valute)
+- Statistike po dobavljačima, hotelima i metodama plaćanja
+
+### 📥 Import/Izvoz
+- Izvoz u JSON, Excel i PDF
+- Učitavanje podataka iz JSON fajla
+- Čuvanje podataka u lokalnoj memoriji pregledača
+
+### 🎨 Teme
+- Četiri GitHub-inspirisane teme:
+  - **github-dark** - Tamna tema
+  - **github-dark-dimmed** - Prigušena tamna tema
+  - **github-dark-blue** - Plava tamna tema
+  - **github-light** - Svetla tema
+
+### 📱 Responsivni dizajn
+- Mobilni pogled sa navigacijom kroz drawer
+- Desktop pogled sa tri panela
+- Prilagođeni hambager meni
+
+## 🛠️ Tehnologije
+
+- **Next.js 16.1.1** sa Turpackom
+- **React 19** sa Client Components
+- **TypeScript** za sigurnost tipova
+- **Tailwind CSS** sa custom CSS varijablama
+- **Lucide React** za ikone
+- **jsPDF** za generisanje PDF-a
+- **XLSX (SheetJS)** za Excel
+- **LocalStorage** za perzistenciju podataka
+
+## 📦 Instalacija
+
+```bash
+npm install
+```
+
+## ▶️ Pokretanje
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Otvori [http://localhost:3000](http://localhost:3000) u pregledniku.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📱 Struktura aplikacije
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Levi sidebar
+- **Pregled baze** - Trenutne statistike
+- **Brze akcije** - Prečice za česte akcije
+- **Moduli** - Navigacija kroz sve sekcije
+- **Poslednje aktivnosti** - Log aktivnosti
 
-## Learn More
+### Centralni deo
+- Aktivna sekcija sa sadržajem
+- Unos i upravljanje podacima
+- Tabelarne prikaze sa akcijama
 
-To learn more about Next.js, take a look at the following resources:
+### Desni sidebar (desktop)
+- **Finansijski puls** - Ključne metrike
+- **Brza analitika** - Statističke informacije
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔐 Sigurnost
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Sistem kontrole pristupa po ulogama
+- Logovanje svih akcija korisnika
+- Čuvanje podataka u lokalnoj memoriji pregledača
+
+## 📝 Napomene
+
+- Svi podaci se čuvaju u `localStorage` pregledača
+- Promenite temu kroz izbor u gornjem desnom uglu
+- Korisnik može biti samo Admin, Editor ili Viewer
+- Izvoz je dostupan za Admin i Editor
+
+## 📄 Licenca
+
+MIT
 
 ## Deploy on Vercel
 
