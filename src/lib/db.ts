@@ -45,6 +45,8 @@ export const payments = sqliteTable('payments', {
   description: text('description').notNull(),
   status: text('status').default('pending'),
   dueDate: text('due_date'),
+  documentType: text('document_type'),
+  documentNumber: text('document_number'),
   method: text('method').notNull(),
   bankName: text('bank_name'),
   serviceType: text('service_type'),

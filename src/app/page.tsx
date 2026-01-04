@@ -55,6 +55,8 @@ interface Payment {
   description: string;
   status: 'pending' | 'completed';
   dueDate?: string;
+  documentType?: string;
+  documentNumber?: string;
   method: string;
   bankName?: string;
   serviceType?: string;
@@ -132,6 +134,8 @@ export default function DashboardPage() {
     description: '',
     status: 'pending',
     dueDate: '',
+    documentType: 'Profaktura',
+    documentNumber: '',
     method: 'Bankarska transakcija',
     bankName: '',
     serviceType: '',
@@ -495,6 +499,8 @@ export default function DashboardPage() {
       description: paymentForm.description || '',
       status: paymentForm.status || 'pending',
       dueDate: paymentForm.dueDate || '',
+      documentType: paymentForm.documentType || 'Profaktura',
+      documentNumber: paymentForm.documentNumber || '',
       method: paymentForm.method || 'Bankarska transakcija',
       bankName: paymentForm.bankName || '',
       serviceType: paymentForm.serviceType || '',
@@ -525,6 +531,8 @@ export default function DashboardPage() {
           description: '',
           status: 'pending',
           dueDate: '',
+          documentType: 'Profaktura',
+          documentNumber: '',
           method: 'Bankarska transakcija',
           bankName: '',
           serviceType: '',
@@ -1739,6 +1747,31 @@ export default function DashboardPage() {
                       className="w-full p-4 rounded-2xl modern-input text-lg"
                     />
                   </div>
+                  
+                  {/* Tip dokumenta i Broj dokumenta - u 2 kolone */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tip dokumenta</label>
+                    <select
+                      value={paymentForm.documentType || 'Profaktura'}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, documentType: e.target.value })}
+                      className="w-full p-4 rounded-2xl modern-input text-lg"
+                    >
+                      <option value="Profaktura">Profaktura</option>
+                      <option value="Avansni Račun">Avansni Račun</option>
+                      <option value="Konačni račun">Konačni račun</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Broj dokumenta</label>
+                    <input
+                      type="text"
+                      value={paymentForm.documentNumber || ''}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, documentNumber: e.target.value })}
+                      placeholder="Unesite broj dokumenta..."
+                      className="w-full p-4 rounded-2xl modern-input text-lg"
+                    />
+                  </div>
+                  
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Godina Realizacije</label>
                     <select
