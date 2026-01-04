@@ -11,6 +11,9 @@ export const suppliers = sqliteTable('suppliers', {
   latitude: real('latitude'),
   longitude: real('longitude'),
   country: text('country'),
+  deleted: integer('deleted', { mode: 'boolean' }).default(false),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -24,6 +27,9 @@ export const hotels = sqliteTable('hotels', {
   manager: text('manager').notNull(),
   latitude: real('latitude'),
   longitude: real('longitude'),
+  deleted: integer('deleted', { mode: 'boolean' }).default(false),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -41,6 +47,9 @@ export const payments = sqliteTable('payments', {
   serviceType: text('service_type'),
   realizationYear: integer('realization_year'),
   reservations: text('reservations').default('[]'), // JSON array as string
+  deleted: integer('deleted', { mode: 'boolean' }).default(false),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
 });
 

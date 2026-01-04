@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
 import { payments } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { eq, isNull, or } from 'drizzle-orm';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const data = await db.select().from(payments);
+    const searchParams = request.nextUrl.searchParams;
+    const showDeleted = searchParams.get('showDeleted') === 'true';
+    
+    let data;
+    if (showDeleted) {
+      // Prikaži sve podatke (i obrisane)
+      data = await db.select().from(payments);
+    } else {
+      // Prikaži samo aktivne podatke
+      data = await db.select().from(payments).where(or(eq(payments.deleted, false), isNull(payments.deleted)));
+    }
+    
     const parsedData = data.map(p => ({
       ...p,
       reservations: p.reservations ? JSON.parse(p.reservations) : []
@@ -68,14 +79,47 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
+    const body = await request.json();
+    const { id, user, hardDelete } = body;
+    
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
     
-    await db.delete(payments).where(eq(payments.id, id));
+    if (hardDelete) {
+      // Trajno brisanje (samo za admin)
+      await db.delete(payments).where(eq(payments.id, id));
+    } else {
+      // Soft delete - označi kao obrisano
+      await db.update(payments).set({
+        deleted: true,
+        deletedAt: new Date(),
+        deletedBy: user || 'Unknown',
+      }).where(eq(payments.id, id));
+    }
+    
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting payment:', error);
     return NextResponse.json({ error: 'Failed to delete payment' }, { status: 500 });
+  }
+}
+
+// PATCH - Vrati obrisane podatke
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id } = body;
+    
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    
+    await db.update(payments).set({
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null,
+    }).where(eq(payments.id, id));
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error restoring payment:', error);
+    return NextResponse.json({ error: 'Failed to restore payment' }, { status: 500 });
   }
 }

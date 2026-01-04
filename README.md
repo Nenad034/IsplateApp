@@ -1,12 +1,12 @@
-# IsplateApp - Sistem za upravljanje uplatama
+# IsplateApp - Sistem za upravljanje isplatama
 
-Moderna aplikacija za upravljanje uplatama dobavljačima i hotelima sa naprednim mogućnostima analize i izvoza podataka.
+Moderna aplikacija za upravljanje isplatama dobavljačima i hotelima sa naprednim mogućnostima analize i izvoza podataka.
 
 ## 🚀 Funkcionalnosti
 
-### 💰 Upravljanje uplatama
-- Kreiraj, uredi i briši uplate
-- Prati status uplata (U čekanju, Završena, Neuspešna)
+### 💰 Upravljanje isplatama
+- Kreiraj, uredi i briši isplate
+- Prati status isplata (U čekanju, Završena, Neuspešna)
 - Podrška za više valuta (USD, EUR, RSD)
 - Automatsko logovanje svih akcija
 
@@ -18,7 +18,7 @@ Moderna aplikacija za upravljanje uplatama dobavljačima i hotelima sa naprednim
 ### 🏨 Hoteli
 - Upravljanje hotelima
 - Prati broj soba i menadžere
-- Povezivanje sa uplatama
+- Povezivanje sa isplatama
 
 ### 👥 Korisnici
 - Sistem uloga (Admin: 1, Editor: 2, Viewer: 3)

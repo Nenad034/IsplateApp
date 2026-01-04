@@ -23,6 +23,9 @@ interface Supplier {
   latitude?: number;
   longitude?: number;
   country?: string;
+  deleted?: boolean;
+  deletedAt?: Date | null;
+  deletedBy?: string | null;
 }
 
 interface Hotel {
@@ -35,6 +38,9 @@ interface Hotel {
   country: string;
   latitude?: number;
   longitude?: number;
+  deleted?: boolean;
+  deletedAt?: Date | null;
+  deletedBy?: string | null;
 }
 
 interface Payment {
@@ -51,6 +57,9 @@ interface Payment {
   serviceType?: string;
   realizationYear?: number;
   reservations?: string[];
+  deleted?: boolean;
+  deletedAt?: Date | null;
+  deletedBy?: string | null;
 }
 
 interface User {
@@ -100,6 +109,8 @@ export default function DashboardPage() {
   const [activeSummaryView, setActiveSummaryView] = useState<'suppliers' | 'hotels' | 'countries' | null>(null);
   const [importTarget, setImportTarget] = useState<'suppliers' | 'hotels'>('suppliers');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [settingsView, setSettingsView] = useState<'general' | 'logs' | 'deleted'>('general');
+  const [showDeletedItems, setShowDeletedItems] = useState(false);
 
   useEffect(() => {
     if (activeTab !== 'overview') {
@@ -162,10 +173,11 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
+      const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
       const [suppliersRes, hotelsRes, paymentsRes, logsRes, usersRes] = await Promise.all([
-        fetch('/api/suppliers'),
-        fetch('/api/hotels'),
-        fetch('/api/payments'),
+        fetch(`/api/suppliers${showDelQuery}`),
+        fetch(`/api/hotels${showDelQuery}`),
+        fetch(`/api/payments${showDelQuery}`),
         fetch('/api/activity-logs'),
         fetch('/api/users')
       ]);
@@ -188,6 +200,49 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
+      const res = await fetch(`/api/suppliers${showDelQuery}`);
+      const data = await res.json();
+      setSuppliers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
+  const fetchHotels = async () => {
+    try {
+      const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
+      const res = await fetch(`/api/hotels${showDelQuery}`);
+      const data = await res.json();
+      setHotels(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching hotels:', error);
+    }
+  };
+
+  const fetchPayments = async () => {
+    try {
+      const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
+      const res = await fetch(`/api/payments${showDelQuery}`);
+      const data = await res.json();
+      setPayments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   useEffect(() => {
     const theme = localStorage.getItem('theme') || 'github-dark';
     setCurrentTheme(theme);
@@ -202,6 +257,13 @@ export default function DashboardPage() {
 
     fetchData();
   }, []);
+
+  // Osvježi podatke kada se promeni showDeletedItems
+  useEffect(() => {
+    if (isLoggedIn && storageReady) {
+      fetchData();
+    }
+  }, [showDeletedItems]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -445,7 +507,7 @@ export default function DashboardPage() {
       if (response.ok) {
         const updatedPayments = await (await fetch('/api/payments')).json();
         setPayments(Array.isArray(updatedPayments) ? updatedPayments : []);
-        logActivity(editingId ? 'Izmenio uplatu' : 'Nova uplata', `${paymentData.amount} ${paymentData.currency}`);
+        logActivity(editingId ? 'Izmenio isplatu' : 'Nova isplata', `${paymentData.amount} ${paymentData.currency}`);
         setPaymentForm({
           supplierId: '',
           hotelId: '',
@@ -476,23 +538,90 @@ export default function DashboardPage() {
     if (!confirm('Da li ste sigurni da želite da obrišete ovu stavku?')) return;
     
     try {
-      const url = `/api/${type === 'supplier' ? 'suppliers' : type === 'hotel' ? 'hotels' : type === 'user' ? 'users' : 'payments'}?id=${id}`;
-      const response = await fetch(url, { method: 'DELETE' });
+      const url = `/api/${type === 'supplier' ? 'suppliers' : type === 'hotel' ? 'hotels' : type === 'user' ? 'users' : 'payments'}`;
+      const response = await fetch(url, { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id, 
+          user: currentUser?.name || 'Unknown',
+          hardDelete: false // Soft delete
+        })
+      });
 
       if (response.ok) {
+        // Osvježi podatke
         if (type === 'supplier') {
-          setSuppliers(suppliers.filter(s => s.id !== id));
+          fetchSuppliers();
         } else if (type === 'hotel') {
-          setHotels(hotels.filter(h => h.id !== id));
+          fetchHotels();
         } else if (type === 'payment') {
-          setPayments(payments.filter(p => p.id !== id));
+          fetchPayments();
         } else if (type === 'user') {
-          setUsers(users.filter(u => u.id !== id));
+          fetchUsers();
         }
         logActivity(`Obrisao ${type}`, id);
       }
     } catch (error) {
       console.error('Error deleting item:', error);
+    }
+  };
+
+  const restoreItem = async (type: string, id: string) => {
+    try {
+      const url = `/api/${type === 'supplier' ? 'suppliers' : type === 'hotel' ? 'hotels' : 'payments'}`;
+      const response = await fetch(url, { 
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+
+      if (response.ok) {
+        // Osvježi podatke
+        if (type === 'supplier') {
+          fetchSuppliers();
+        } else if (type === 'hotel') {
+          fetchHotels();
+        } else if (type === 'payment') {
+          fetchPayments();
+        }
+        logActivity(`Vratio ${type}`, id);
+        alert('Stavka je uspješno vraćena!');
+      }
+    } catch (error) {
+      console.error('Error restoring item:', error);
+    }
+  };
+
+  const hardDeleteItem = async (type: string, id: string) => {
+    if (!confirm('UPOZORENJE: Ovo će TRAJNO obrisati stavku! Da li ste apsolutno sigurni?')) return;
+    
+    try {
+      const url = `/api/${type === 'supplier' ? 'suppliers' : type === 'hotel' ? 'hotels' : 'payments'}`;
+      const response = await fetch(url, { 
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id, 
+          user: currentUser?.name || 'Unknown',
+          hardDelete: true // Trajno brisanje
+        })
+      });
+
+      if (response.ok) {
+        // Osvježi podatke
+        if (type === 'supplier') {
+          fetchSuppliers();
+        } else if (type === 'hotel') {
+          fetchHotels();
+        } else if (type === 'payment') {
+          fetchPayments();
+        }
+        logActivity(`TRAJNO OBRISAO ${type}`, id);
+        alert('Stavka je trajno obrisana!');
+      }
+    } catch (error) {
+      console.error('Error hard deleting item:', error);
     }
   };
 
@@ -552,7 +681,7 @@ export default function DashboardPage() {
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text('Izveštaj o uplatama', 10, 10);
+    doc.text('Izveštaj o isplatama', 10, 10);
     autoTable(doc, {
       head: [['Dobavljač', 'Hotel', 'Usluga', 'Iznos', 'Datum', 'Metoda', 'Status']],
       body: (Array.isArray(payments) ? payments : []).map(p => [
@@ -601,7 +730,7 @@ export default function DashboardPage() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Izveštaj o uplatama</title>
+        <title>Izveštaj o isplatama</title>
         <style>
           table { border-collapse: collapse; width: 100%; font-family: sans-serif; }
           th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
@@ -610,7 +739,7 @@ export default function DashboardPage() {
         </style>
       </head>
       <body>
-        <h1>Izveštaj o uplatama</h1>
+        <h1>Izveštaj o isplatama</h1>
         <table>
           <thead>
             <tr>
@@ -1043,7 +1172,7 @@ export default function DashboardPage() {
                 onClick={() => { setActiveTab('payments'); setShowPaymentForm(true); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 p-4 rounded-2xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
               >
-                <Plus size={20} /> Nova uplata
+                <Plus size={20} /> Nova isplata
               </button>
               <button
                 onClick={() => { setActiveTab('suppliers'); setSidebarOpen(false); }}
@@ -1166,10 +1295,10 @@ export default function DashboardPage() {
                   </button>
                   <h2 className="text-4xl font-black tracking-tight">
                     {activeSummaryView === 'suppliers' ? 'Uplate po dobavljačima' : 
-                     activeSummaryView === 'hotels' ? 'Uplate po hotelima' : 'Uplate po državama'}
+                     activeSummaryView === 'hotels' ? 'Isplate po hotelima' : 'Isplate po državama'}
                   </h2>
                   <p className="text-xl text-slate-500 mt-2">
-                    Prikaz svih uplata u periodu od {new Date(analyticsFromDate).toLocaleDateString()} do {new Date(analyticsToDate).toLocaleDateString()}
+                    Prikaz svih isplata u periodu od {new Date(analyticsFromDate).toLocaleDateString()} do {new Date(analyticsToDate).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -1262,7 +1391,7 @@ export default function DashboardPage() {
                     <Plus size={28} />
                   </div>
                   <div className="text-left">
-                    <p className="text-xl font-bold">Nova uplata</p>
+                    <p className="text-xl font-bold">Nova isplata</p>
                     <p className="text-sm text-slate-500">Evidentiraj novu transakciju</p>
                   </div>
                 </button>
@@ -1441,7 +1570,7 @@ export default function DashboardPage() {
                     </button>
                   </div>
                   <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                    <Plus className="text-blue-400" /> {editingId ? 'Izmeni uplatu' : 'Nova uplata'}
+                    <Plus className="text-blue-400" /> {editingId ? 'Izmeni isplatu' : 'Nova isplata'}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                     <div className="space-y-2">
@@ -1666,7 +1795,7 @@ export default function DashboardPage() {
 
               <div className="glass-card overflow-hidden">
                 <div className="p-8 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-color)' }}>
-                  <h3 className="text-2xl font-bold">Istorija uplata</h3>
+                  <h3 className="text-2xl font-bold">Istorija isplata</h3>
                   <div className="flex gap-2">
                     <button className="p-2 rounded-xl hover:bg-white/5 transition-colors"><Filter size={20} /></button>
                   </div>
@@ -2138,6 +2267,43 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Tab Navigation */}
+              <div className="flex gap-2 p-2 bg-white/5 rounded-2xl border border-white/10">
+                <button
+                  onClick={() => setSettingsView('general')}
+                  className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                    settingsView === 'general' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Settings className="inline mr-2" size={20} />
+                  Opšte
+                </button>
+                {currentUser?.role === 1 && (
+                  <>
+                    <button
+                      onClick={() => setSettingsView('logs')}
+                      className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                        settingsView === 'logs' ? 'bg-purple-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Activity className="inline mr-2" size={20} />
+                      Logovi
+                    </button>
+                    <button
+                      onClick={() => setSettingsView('deleted')}
+                      className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                        settingsView === 'deleted' ? 'bg-red-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Trash2 className="inline mr-2" size={20} />
+                      Obrisani podaci
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* General Settings View */}
+              {settingsView === 'general' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
                   <div className="glass-card p-8">
@@ -2287,6 +2453,186 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+              )}
+
+              {/* Logs View - Admin Only */}
+              {settingsView === 'logs' && currentUser?.role === 1 && (
+                <div className="glass-card p-8">
+                  <h3 className="text-2xl font-bold mb-8 flex items-center gap-3">
+                    <Activity className="text-purple-400" /> Sistem Logova
+                  </h3>
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                    {activityLogs.map((log) => (
+                      <div key={log.id} className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Activity size={18} className="text-purple-400" />
+                              <p className="text-xl font-bold">{log.action}</p>
+                            </div>
+                            <p className="text-base text-slate-400 mb-2">{log.details}</p>
+                            <div className="flex items-center gap-4 text-sm text-slate-500">
+                              <span>👤 {log.user}</span>
+                              <span>🕐 {new Date(log.timestamp).toLocaleString('sr-RS')}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Deleted Items View - Admin Only */}
+              {settingsView === 'deleted' && currentUser?.role === 1 && (
+                <div className="space-y-8">
+                  <div className="glass-card p-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-2xl font-bold flex items-center gap-3">
+                        <Trash2 className="text-red-400" /> Upravljanje obrisanim podacima
+                      </h3>
+                      <button
+                        onClick={() => { setShowDeletedItems(!showDeletedItems); }}
+                        className={`px-6 py-3 rounded-xl font-bold transition-all ${
+                          showDeletedItems ? 'bg-red-500 text-white' : 'bg-white/10 text-slate-400'
+                        }`}
+                      >
+                        {showDeletedItems ? 'Prikaži samo aktivne' : 'Prikaži obrisane'}
+                      </button>
+                    </div>
+                    
+                    {showDeletedItems && (
+                      <div className="space-y-6">
+                        {/* Deleted Payments */}
+                        {payments.filter(p => p.deleted).length > 0 && (
+                          <div>
+                            <h4 className="text-xl font-bold mb-4 text-red-400">Obrisane isplate ({payments.filter(p => p.deleted).length})</h4>
+                            <div className="space-y-3">
+                              {payments.filter(p => p.deleted).map(payment => (
+                                <div key={payment.id} className="p-6 rounded-2xl bg-red-500/10 border border-red-500/20">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-lg font-bold">{payment.description}</p>
+                                      <p className="text-sm text-slate-400">
+                                        Iznos: {payment.amount} {payment.currency} | 
+                                        Obrisao: {payment.deletedBy} | 
+                                        Datum brisanja: {payment.deletedAt ? new Date(payment.deletedAt).toLocaleString('sr-RS') : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => restoreItem('payment', payment.id)}
+                                        className="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all font-bold"
+                                      >
+                                        Vrati
+                                      </button>
+                                      <button
+                                        onClick={() => hardDeleteItem('payment', payment.id)}
+                                        className="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all font-bold"
+                                      >
+                                        Trajno obriši
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Deleted Suppliers */}
+                        {suppliers.filter(s => s.deleted).length > 0 && (
+                          <div>
+                            <h4 className="text-xl font-bold mb-4 text-red-400">Obrisani dobavljači ({suppliers.filter(s => s.deleted).length})</h4>
+                            <div className="space-y-3">
+                              {suppliers.filter(s => s.deleted).map(supplier => (
+                                <div key={supplier.id} className="p-6 rounded-2xl bg-red-500/10 border border-red-500/20">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-lg font-bold">{supplier.name}</p>
+                                      <p className="text-sm text-slate-400">
+                                        Email: {supplier.email} | 
+                                        Obrisao: {supplier.deletedBy} | 
+                                        Datum brisanja: {supplier.deletedAt ? new Date(supplier.deletedAt).toLocaleString('sr-RS') : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => restoreItem('supplier', supplier.id)}
+                                        className="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all font-bold"
+                                      >
+                                        Vrati
+                                      </button>
+                                      <button
+                                        onClick={() => hardDeleteItem('supplier', supplier.id)}
+                                        className="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all font-bold"
+                                      >
+                                        Trajno obriši
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Deleted Hotels */}
+                        {hotels.filter(h => h.deleted).length > 0 && (
+                          <div>
+                            <h4 className="text-xl font-bold mb-4 text-red-400">Obrisani hoteli ({hotels.filter(h => h.deleted).length})</h4>
+                            <div className="space-y-3">
+                              {hotels.filter(h => h.deleted).map(hotel => (
+                                <div key={hotel.id} className="p-6 rounded-2xl bg-red-500/10 border border-red-500/20">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-lg font-bold">{hotel.name}</p>
+                                      <p className="text-sm text-slate-400">
+                                        Grad: {hotel.city} | 
+                                        Obrisao: {hotel.deletedBy} | 
+                                        Datum brisanja: {hotel.deletedAt ? new Date(hotel.deletedAt).toLocaleString('sr-RS') : 'N/A'}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => restoreItem('hotel', hotel.id)}
+                                        className="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all font-bold"
+                                      >
+                                        Vrati
+                                      </button>
+                                      <button
+                                        onClick={() => hardDeleteItem('hotel', hotel.id)}
+                                        className="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all font-bold"
+                                      >
+                                        Trajno obriši
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {payments.filter(p => p.deleted).length === 0 && 
+                         suppliers.filter(s => s.deleted).length === 0 && 
+                         hotels.filter(h => h.deleted).length === 0 && (
+                          <div className="text-center py-12">
+                            <p className="text-xl text-slate-500">Nema obrisanih podataka</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {!showDeletedItems && (
+                      <div className="text-center py-12">
+                        <Trash2 size={64} className="mx-auto text-slate-700 mb-4" />
+                        <p className="text-xl text-slate-500">Kliknite na dugme iznad da prikažete obrisane podatke</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
