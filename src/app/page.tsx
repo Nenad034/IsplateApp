@@ -2651,31 +2651,8 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-8 space-y-8">
-            <section>
-              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Nedavni događaji</h4>
-              <div className="space-y-6">
-                {activityLogs.slice(0, 15).map((log, i) => (
-                  <div key={log.id} className="flex gap-4 relative">
-                    {i !== activityLogs.slice(0, 15).length - 1 && (
-                      <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-slate-800" />
-                    )}
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 border flex items-center justify-center flex-shrink-0 z-10" style={{ borderColor: 'var(--border-color)' }}>
-                      <Activity size={20} className="text-blue-400" />
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <p className="text-lg font-bold leading-tight">{log.action}</p>
-                      <p className="text-base text-slate-500 mt-1">{log.details}</p>
-                      <p className="text-sm text-slate-600 mt-2 font-medium">{new Date(log.timestamp).toLocaleTimeString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Filters Section - Fixed at Bottom */}
-          <div className="p-8 pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+          {/* Filters Section - At Top */}
+          <div className="p-8 pt-0 border-b" style={{ borderColor: 'var(--border-color)' }}>
             <div className="mb-6 space-y-4">
               <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Filtriraj po datumu</h4>
               <div className="grid grid-cols-2 gap-4">
@@ -2734,6 +2711,29 @@ export default function DashboardPage() {
                 <ChevronDown size={18} className="text-slate-500 group-hover:text-emerald-400 -rotate-90" />
               </button>
             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-8 space-y-8">
+            <section>
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Nedavni događaji</h4>
+              <div className="space-y-6">
+                {activityLogs.slice(0, 15).map((log, i) => (
+                  <div key={log.id} className="flex gap-4 relative">
+                    {i !== activityLogs.slice(0, 15).length - 1 && (
+                      <div className="absolute left-6 top-12 bottom-0 w-0.5 bg-slate-800" />
+                    )}
+                    <div className="w-12 h-12 rounded-2xl bg-white/5 border flex items-center justify-center flex-shrink-0 z-10" style={{ borderColor: 'var(--border-color)' }}>
+                      <Activity size={20} className="text-blue-400" />
+                    </div>
+                    <div className="flex-1 pt-1">
+                      <p className="text-lg font-bold leading-tight">{log.action}</p>
+                      <p className="text-base text-slate-500 mt-1">{log.details}</p>
+                      <p className="text-sm text-slate-600 mt-2 font-medium">{new Date(log.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
 
           {/* Resize Handle Right */}
