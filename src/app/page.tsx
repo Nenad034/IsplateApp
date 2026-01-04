@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import {
   Building2, CreditCard, PieChart, Users, Activity, Settings, ChevronDown,
   Plus, Download, Upload, Search, Calendar, LogOut, Menu, X, Eye, Trash2,
-  Edit2, Filter, TrendingUp, DollarSign, BarChart3, Zap, ShieldCheck, Map as MapIcon
+  Edit2, Filter, TrendingUp, DollarSign, BarChart3, Zap, ShieldCheck, Map as MapIcon,
+  MessageCircle, Send, Brain, Maximize2, Minimize2, Move
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -115,12 +116,38 @@ export default function DashboardPage() {
   const [activeSummaryView, setActiveSummaryView] = useState<'suppliers' | 'hotels' | 'countries' | null>(null);
   const [importTarget, setImportTarget] = useState<'suppliers' | 'hotels'>('suppliers');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [settingsView, setSettingsView] = useState<'general' | 'logs' | 'deleted'>('general');
+  const [settingsView, setSettingsView] = useState<'general' | 'logs' | 'deleted' | 'ai-training'>('general');
   const [showDeletedItems, setShowDeletedItems] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [logsLimit, setLogsLimit] = useState(50);
   const [logsFromDate, setLogsFromDate] = useState('');
   const [logsToDate, setLogsToDate] = useState('');
+  const [logsSearchQuery, setLogsSearchQuery] = useState('');
+
+  // AI Assistant States
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [aiChatMessages, setAiChatMessages] = useState<{role: 'user' | 'ai', message: string}[]>([]);
+  const [aiInputMessage, setAiInputMessage] = useState('');
+  const [aiChatWidth, setAiChatWidth] = useState(400);
+  const [aiChatHeight, setAiChatHeight] = useState(500);
+  const [aiChatX, setAiChatX] = useState(0);
+  const [aiChatY, setAiChatY] = useState(0);
+  const [isAiResizing, setIsAiResizing] = useState(false);
+  const [isAiDragging, setIsAiDragging] = useState(false);
+  const [aiResizeDirection, setAiResizeDirection] = useState<string>('');
+  const [aiDragStart, setAiDragStart] = useState({x: 0, y: 0});
+  const [aiTrainingData, setAiTrainingData] = useState<{question: string, answer: string}[]>([]);
+  const [aiTrainingQuestion, setAiTrainingQuestion] = useState('');
+  const [aiTrainingAnswer, setAiTrainingAnswer] = useState('');
+  const [aiIsLoading, setAiIsLoading] = useState(false);
+
+  // Initialize AI chat position on client side only
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setAiChatX(window.innerWidth - 450);
+      setAiChatY(window.innerHeight - 550);
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab !== 'overview') {
@@ -271,6 +298,15 @@ export default function DashboardPage() {
       setIsLoggedIn(true);
     }
 
+    // Load AI training data from localStorage
+    const savedAiData = localStorage.getItem('isplateData');
+    if (savedAiData) {
+      const data = JSON.parse(savedAiData);
+      if (data.aiTrainingData && Array.isArray(data.aiTrainingData)) {
+        setAiTrainingData(data.aiTrainingData);
+      }
+    }
+
     fetchData();
   }, []);
 
@@ -326,6 +362,8 @@ export default function DashboardPage() {
     const handleMouseUp = () => {
       setIsResizingLeft(false);
       setIsResizingRight(false);
+      setIsAiResizing(false);
+      setIsAiDragging(false);
     };
 
     if (isResizingLeft || isResizingRight) {
@@ -337,6 +375,58 @@ export default function DashboardPage() {
       };
     }
   }, [isResizingLeft, isResizingRight]);
+
+  // AI Chat Drag and Resize
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isAiDragging) {
+        const newX = e.clientX - aiDragStart.x;
+        const newY = e.clientY - aiDragStart.y;
+        setAiChatX(Math.max(0, Math.min(newX, window.innerWidth - aiChatWidth)));
+        setAiChatY(Math.max(0, Math.min(newY, window.innerHeight - aiChatHeight)));
+      }
+
+      if (isAiResizing) {
+        const deltaX = e.movementX;
+        const deltaY = e.movementY;
+
+        if (aiResizeDirection.includes('e')) {
+          setAiChatWidth(prev => Math.max(350, Math.min(prev + deltaX, window.innerWidth - aiChatX)));
+        }
+        if (aiResizeDirection.includes('w')) {
+          const newWidth = aiChatWidth - deltaX;
+          if (newWidth >= 350) {
+            setAiChatWidth(newWidth);
+            setAiChatX(prev => prev + deltaX);
+          }
+        }
+        if (aiResizeDirection.includes('s')) {
+          setAiChatHeight(prev => Math.max(400, Math.min(prev + deltaY, window.innerHeight - aiChatY)));
+        }
+        if (aiResizeDirection.includes('n')) {
+          const newHeight = aiChatHeight - deltaY;
+          if (newHeight >= 400) {
+            setAiChatHeight(newHeight);
+            setAiChatY(prev => prev + deltaY);
+          }
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsAiResizing(false);
+      setIsAiDragging(false);
+    };
+
+    if (isAiDragging || isAiResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isAiDragging, isAiResizing, aiResizeDirection, aiDragStart, aiChatWidth, aiChatHeight, aiChatX, aiChatY]);
 
   const saveToStorage = (key: string, value: unknown) => {
     const data = JSON.parse(localStorage.getItem('isplateData') || '{}');
@@ -847,6 +937,9 @@ export default function DashboardPage() {
               data.push(obj);
             }
           }
+        } else if (extension === 'pdf' || extension === 'html' || extension === 'htm') {
+          alert(`Import iz ${extension.toUpperCase()} formata još nije implementiran. Molimo koristite JSON, Excel ili XML.`);
+          return;
         }
 
         if (data.length === 0) {
@@ -922,6 +1015,233 @@ export default function DashboardPage() {
       }
     };
     reader.readAsText(file);
+  };
+
+  // AI Assistant Functions
+  const processAiQuery = (query: string): string => {
+    const lowerQuery = query.toLowerCase();
+    
+    // Check training data first
+    const trainingMatch = aiTrainingData.find(item => 
+      item.question.toLowerCase().includes(lowerQuery) || lowerQuery.includes(item.question.toLowerCase())
+    );
+    if (trainingMatch) return trainingMatch.answer;
+
+    // Payments queries
+    if (lowerQuery.includes('ukupno') || lowerQuery.includes('total') || lowerQuery.includes('suma')) {
+      if (lowerQuery.includes('isplat')) {
+        const total = payments.reduce((sum, p) => sum + p.amount, 0);
+        return `Ukupan iznos svih isplata je: ${formatCurrency(total, 'EUR')} (${payments.length} isplata)`;
+      }
+    }
+
+    if (lowerQuery.includes('na čekanju') || lowerQuery.includes('pending')) {
+      const pending = payments.filter(p => p.status === 'pending');
+      const totalPending = pending.reduce((sum, p) => sum + p.amount, 0);
+      return `Trenutno ima ${pending.length} isplata na čekanju, ukupno ${formatCurrency(totalPending, 'EUR')}`;
+    }
+
+    if (lowerQuery.includes('isplaćeno') || lowerQuery.includes('completed')) {
+      const completed = payments.filter(p => p.status === 'completed');
+      const totalCompleted = completed.reduce((sum, p) => sum + p.amount, 0);
+      return `Ukupno isplaćeno: ${completed.length} isplata, ${formatCurrency(totalCompleted, 'EUR')}`;
+    }
+
+    // Supplier queries
+    if (lowerQuery.includes('dobavljač') || lowerQuery.includes('supplier')) {
+      if (lowerQuery.includes('broj') || lowerQuery.includes('koliko')) {
+        return `Trenutno imate ${suppliers.filter(s => !s.deleted).length} aktivnih dobavljača`;
+      }
+      const supplierName = suppliers.find(s => lowerQuery.includes(s.name.toLowerCase()));
+      if (supplierName) {
+        const supplierPayments = payments.filter(p => p.supplierId === supplierName.id);
+        const total = supplierPayments.reduce((sum, p) => sum + p.amount, 0);
+        return `Dobavljač ${supplierName.name}: ${supplierPayments.length} isplata, ukupno ${formatCurrency(total, 'EUR')}`;
+      }
+    }
+
+    // Hotel queries
+    if (lowerQuery.includes('hotel')) {
+      if (lowerQuery.includes('broj') || lowerQuery.includes('koliko')) {
+        return `Trenutno imate ${hotels.filter(h => !h.deleted).length} aktivnih hotela`;
+      }
+      const hotelName = hotels.find(h => lowerQuery.includes(h.name.toLowerCase()));
+      if (hotelName) {
+        const hotelPayments = payments.filter(p => p.hotelId === hotelName.id);
+        const total = hotelPayments.reduce((sum, p) => sum + p.amount, 0);
+        return `Hotel ${hotelName.name}: ${hotelPayments.length} isplata, ukupno ${formatCurrency(total, 'EUR')}`;
+      }
+    }
+
+    // Date range queries
+    if (lowerQuery.includes('danas')) {
+      const today = new Date().toISOString().split('T')[0];
+      const todayPayments = payments.filter(p => p.date === today);
+      return `Danas: ${todayPayments.length} isplata, ukupno ${formatCurrency(todayPayments.reduce((s,p) => s + p.amount, 0), 'EUR')}`;
+    }
+
+    if (lowerQuery.includes('ovog meseca') || lowerQuery.includes('ovaj mesec')) {
+      const thisMonth = new Date().toISOString().slice(0, 7);
+      const monthPayments = payments.filter(p => p.date.startsWith(thisMonth));
+      return `Ovog meseca: ${monthPayments.length} isplata, ukupno ${formatCurrency(monthPayments.reduce((s,p) => s + p.amount, 0), 'EUR')}`;
+    }
+
+    // Currency queries
+    if (lowerQuery.includes('valut')) {
+      const eur = payments.filter(p => p.currency === 'EUR').reduce((s,p) => s + p.amount, 0);
+      const usd = payments.filter(p => p.currency === 'USD').reduce((s,p) => s + p.amount, 0);
+      const rsd = payments.filter(p => p.currency === 'RSD').reduce((s,p) => s + p.amount, 0);
+      return `Isplate po valutama:\nEUR: ${formatCurrency(eur, 'EUR')}\nUSD: ${formatCurrency(usd, 'USD')}\nRSD: ${formatCurrency(rsd, 'RSD')}`;
+    }
+
+    return 'Nisam siguran kako da odgovorim na to pitanje. Možete me obučiti u podešavanjima (AI Obuka tab) ili pokušajte pitati o:\n- Ukupnim isplatama\n- Statusima (na čekanju/isplaćeno)\n- Konkretnim dobavljačima ili hotelima\n- Datumima (danas, ovog meseca)\n- Valutama';
+  };
+
+  const handleAiSend = async () => {
+    if (!aiInputMessage.trim() || aiIsLoading) return;
+    
+    const userMessage = aiInputMessage;
+    setAiChatMessages([...aiChatMessages, { role: 'user', message: userMessage }]);
+    setAiInputMessage('');
+    setAiIsLoading(true);
+
+    try {
+      // Prepare context with current data
+      const context = `
+ISPLATE:
+- Ukupno isplata: ${payments.length}
+- Na čekanju: ${payments.filter(p => p.status === 'pending').length}
+- Isplaćeno: ${payments.filter(p => p.status === 'completed').length}
+- Ukupan iznos: ${formatCurrency(payments.reduce((s,p) => s + p.amount, 0), 'EUR')}
+- EUR: ${formatCurrency(payments.filter(p => p.currency === 'EUR').reduce((s,p) => s + p.amount, 0), 'EUR')}
+- USD: ${formatCurrency(payments.filter(p => p.currency === 'USD').reduce((s,p) => s + p.amount, 0), 'USD')}
+- RSD: ${formatCurrency(payments.filter(p => p.currency === 'RSD').reduce((s,p) => s + p.amount, 0), 'RSD')}
+
+DOBAVLJAČI:
+- Broj dobavljača: ${suppliers.filter(s => !s.deleted).length}
+- Top 3: ${suppliers.slice(0, 3).map(s => s.name).join(', ')}
+
+HOTELI:
+- Broj hotela: ${hotels.filter(h => !h.deleted).length}
+- Top 3: ${hotels.slice(0, 3).map(h => h.name).join(', ')}
+
+OBUČENI PODACI:
+${aiTrainingData.map(t => `Q: ${t.question}\nA: ${t.answer}`).join('\n\n')}
+`;
+
+      // Call Gemini API
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userMessage, context }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('AI API Error:', data);
+        throw new Error(data.error || 'AI API request failed');
+      }
+
+      if (data.answer) {
+        setAiChatMessages(prev => [...prev, { role: 'ai', message: data.answer }]);
+        logActivity('AI Chat', `Pitanje: ${userMessage.substring(0, 50)}...`);
+      } else {
+        throw new Error('No answer received from AI');
+      }
+    } catch (error: any) {
+      console.error('AI Error:', error);
+      const errorMsg = error?.message?.includes('API ključem') 
+        ? 'Problem sa API ključem. Kontaktirajte administratora.'
+        : error?.message?.includes('limit')
+        ? 'Prekoračen limit poziva. Pokušajte kasnije.'
+        : error?.message?.includes('internet') || error?.message?.includes('network')
+        ? 'Problem sa konekcijom. Proverite internet vezu.'
+        : 'Došlo je do greške pri komunikaciji sa AI-jem. Molim pokušajte ponovo.';
+      
+      setAiChatMessages(prev => [...prev, { 
+        role: 'ai', 
+        message: errorMsg
+      }]);
+    } finally {
+      setAiIsLoading(false);
+    }
+  };
+
+  const exportAiTrainingData = (format: 'json' | 'xlsx' | 'xml' | 'pdf' | 'html') => {
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(aiTrainingData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai-training-${Date.now()}.json`;
+      a.click();
+    } else if (format === 'xlsx') {
+      const ws = XLSX.utils.json_to_sheet(aiTrainingData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'AI Training');
+      XLSX.writeFile(wb, `ai-training-${Date.now()}.xlsx`);
+    } else if (format === 'xml') {
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<training>\n';
+      aiTrainingData.forEach(item => {
+        xml += '  <item>\n';
+        xml += `    <question>${item.question}</question>\n`;
+        xml += `    <answer>${item.answer}</answer>\n`;
+        xml += '  </item>\n';
+      });
+      xml += '</training>';
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai-training-${Date.now()}.xml`;
+      a.click();
+    } else {
+      alert(`Export u ${format.toUpperCase()} format još nije implementiran.`);
+    }
+    logActivity('Izvozio AI trening podatke', format.toUpperCase());
+  };
+
+  const importAiTrainingData = (file: File) => {
+    const reader = new FileReader();
+    const extension = file.name.split('.').pop()?.toLowerCase();
+
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result;
+        let data: any[] = [];
+
+        if (extension === 'json') {
+          data = JSON.parse(content as string);
+        } else if (extension === 'xlsx' || extension === 'xls') {
+          const workbook = XLSX.read(content, { type: 'binary' });
+          data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        } else if (extension === 'xml') {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(content as string, 'text/xml');
+          const items = xmlDoc.getElementsByTagName('item');
+          for (let i = 0; i < items.length; i++) {
+            data.push({
+              question: items[i].getElementsByTagName('question')[0]?.textContent || '',
+              answer: items[i].getElementsByTagName('answer')[0]?.textContent || ''
+            });
+          }
+        }
+
+        setAiTrainingData(data);
+        saveToStorage('aiTrainingData', data);
+        logActivity('Uvezao AI trening podatke', `${data.length} stavki`);
+        alert(`Uspešno uvezeno ${data.length} trening podataka`);
+      } catch (error) {
+        alert('Greška pri uvozu AI trening podataka');
+      }
+    };
+
+    if (extension === 'xlsx' || extension === 'xls') {
+      reader.readAsBinaryString(file);
+    } else {
+      reader.readAsText(file);
+    }
   };
 
   // Analitika po datumskom opsegu
@@ -1495,16 +1815,16 @@ export default function DashboardPage() {
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
-                        <span className="font-semibold">USD</span>
-                        <span className="text-xl font-bold text-amber-400">{formatCurrency(stats.pendingUSD, 'USD')}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
                         <span className="font-semibold">EUR</span>
                         <span className="text-xl font-bold text-amber-400">{formatCurrency(stats.pendingEUR, 'EUR')}</span>
                       </div>
                       <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
                         <span className="font-semibold">RSD</span>
                         <span className="text-xl font-bold text-amber-400">{formatCurrency(stats.pendingRSD, 'RSD')}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                        <span className="font-semibold">USD</span>
+                        <span className="text-xl font-bold text-amber-400">{formatCurrency(stats.pendingUSD, 'USD')}</span>
                       </div>
                     </div>
                   </div>
@@ -1522,16 +1842,16 @@ export default function DashboardPage() {
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                        <span className="font-semibold">USD</span>
-                        <span className="text-xl font-bold text-emerald-400">{formatCurrency(stats.completedUSD, 'USD')}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
                         <span className="font-semibold">EUR</span>
                         <span className="text-xl font-bold text-emerald-400">{formatCurrency(stats.completedEUR, 'EUR')}</span>
                       </div>
                       <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
                         <span className="font-semibold">RSD</span>
                         <span className="text-xl font-bold text-emerald-400">{formatCurrency(stats.completedRSD, 'RSD')}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                        <span className="font-semibold">USD</span>
+                        <span className="text-xl font-bold text-emerald-400">{formatCurrency(stats.completedUSD, 'USD')}</span>
                       </div>
                     </div>
                   </div>
@@ -1834,13 +2154,17 @@ export default function DashboardPage() {
                 {(paymentForm.method === 'Bankarska transakcija' || paymentForm.method === 'Credit Card') && (
                   <div className="space-y-2 mb-6">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Banka</label>
-                    <input
-                      type="text"
-                      placeholder="Unesite naziv banke..."
+                    <select
                       value={paymentForm.bankName || ''}
                       onChange={(e) => setPaymentForm({ ...paymentForm, bankName: e.target.value })}
                       className="w-full p-4 rounded-2xl modern-input text-lg"
-                    />
+                    >
+                      <option value="">Izaberite banku</option>
+                      <option value="Banka Intesa">Banka Intesa</option>
+                      <option value="Aik Banka">Aik Banka</option>
+                      <option value="Unicredit banka">Unicredit banka</option>
+                      <option value="Otp Banka">Otp Banka</option>
+                    </select>
                   </div>
                 )}
 
@@ -2449,6 +2773,9 @@ export default function DashboardPage() {
                     <button
                       onClick={() => {
                         setSettingsView('logs');
+                        setLogsSearchQuery('');
+                        setLogsFromDate('');
+                        setLogsToDate('');
                         setLogsLimit(50);
                       }}
                       className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
@@ -2471,6 +2798,15 @@ export default function DashboardPage() {
                     >
                       <Trash2 className="inline mr-2" size={20} />
                       Obrisani podaci
+                    </button>
+                    <button
+                      onClick={() => setSettingsView('ai-training')}
+                      className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
+                        settingsView === 'ai-training' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Brain className="inline mr-2" size={20} />
+                      AI Obuka
                     </button>
                   </>
                 )}
@@ -2584,10 +2920,10 @@ export default function DashboardPage() {
 
                             <label className="flex-1 flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-white/10 border border-white/10 text-white font-bold hover:bg-white/20 transition-all cursor-pointer">
                               <Upload size={20} />
-                              Izaberi fajl (JSON, Excel, XML)
+                              Izaberi fajl (JSON, Excel, XML, PDF, HTML)
                               <input 
                                 type="file" 
-                                accept=".json,.xlsx,.xls,.xml" 
+                                accept=".json,.xlsx,.xls,.xml,.pdf,.html,.htm" 
                                 className="hidden" 
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
@@ -2636,6 +2972,21 @@ export default function DashboardPage() {
                     <Activity className="text-purple-400" /> Sistem Logova
                   </h3>
                   
+                  {/* Search Filter */}
+                  <div className="mb-6 p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <h4 className="text-lg font-bold mb-4 text-slate-300">Pretraga</h4>
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                      <input
+                        type="text"
+                        value={logsSearchQuery}
+                        onChange={(e) => setLogsSearchQuery(e.target.value)}
+                        placeholder="Pretražite po akciji, detaljima ili korisniku..."
+                        className="w-full p-4 pl-12 rounded-xl modern-input text-lg"
+                      />
+                    </div>
+                  </div>
+                  
                   {/* Date Filters */}
                   <div className="mb-8 p-6 rounded-2xl bg-white/5 border border-white/10">
                     <h4 className="text-lg font-bold mb-4 text-slate-300">Filtriranje po datumu</h4>
@@ -2662,6 +3013,7 @@ export default function DashboardPage() {
                     <div className="mt-4 flex gap-3">
                       <button
                         onClick={() => {
+                          setLogsSearchQuery('');
                           setLogsFromDate('');
                           setLogsToDate('');
                           setLogsLimit(50);
@@ -2673,6 +3025,17 @@ export default function DashboardPage() {
                       <div className="text-sm text-slate-400 flex items-center">
                         Prikazano: {(() => {
                           const filtered = activityLogs.filter(log => {
+                            // Search filter
+                            if (logsSearchQuery) {
+                              const query = logsSearchQuery.toLowerCase();
+                              const matchesSearch = 
+                                log.action.toLowerCase().includes(query) ||
+                                log.details.toLowerCase().includes(query) ||
+                                log.user.toLowerCase().includes(query);
+                              if (!matchesSearch) return false;
+                            }
+                            
+                            // Date filter
                             if (!logsFromDate && !logsToDate) return true;
                             const logDate = new Date(log.timestamp);
                             const from = logsFromDate ? new Date(logsFromDate) : null;
@@ -2696,6 +3059,17 @@ export default function DashboardPage() {
                   <div className="space-y-4 max-h-[600px] overflow-y-auto">
                     {(() => {
                       const filtered = activityLogs.filter(log => {
+                        // Search filter
+                        if (logsSearchQuery) {
+                          const query = logsSearchQuery.toLowerCase();
+                          const matchesSearch = 
+                            log.action.toLowerCase().includes(query) ||
+                            log.details.toLowerCase().includes(query) ||
+                            log.user.toLowerCase().includes(query);
+                          if (!matchesSearch) return false;
+                        }
+                        
+                        // Date filter
                         if (!logsFromDate && !logsToDate) return true;
                         const logDate = new Date(log.timestamp);
                         const from = logsFromDate ? new Date(logsFromDate) : null;
@@ -2738,6 +3112,17 @@ export default function DashboardPage() {
                   {/* Load More Button */}
                   {(() => {
                     const filtered = activityLogs.filter(log => {
+                      // Search filter
+                      if (logsSearchQuery) {
+                        const query = logsSearchQuery.toLowerCase();
+                        const matchesSearch = 
+                          log.action.toLowerCase().includes(query) ||
+                          log.details.toLowerCase().includes(query) ||
+                          log.user.toLowerCase().includes(query);
+                        if (!matchesSearch) return false;
+                      }
+                      
+                      // Date filter
                       if (!logsFromDate && !logsToDate) return true;
                       const logDate = new Date(log.timestamp);
                       const from = logsFromDate ? new Date(logsFromDate) : null;
@@ -2916,6 +3301,141 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+
+              {/* AI Training View - Admin Only */}
+              {settingsView === 'ai-training' && currentUser?.role === 1 && (
+                <div className="glass-card p-8">
+                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <Brain className="text-purple-400" /> AI Obučavanje Asistenta
+                  </h3>
+
+                  {/* Add Training Data */}
+                  <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-purple-600/10 to-pink-600/10 border border-purple-500/20">
+                    <h4 className="text-lg font-bold mb-4 text-purple-300">Dodaj novo znanje</h4>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Pitanje</label>
+                        <input
+                          type="text"
+                          value={aiTrainingQuestion}
+                          onChange={(e) => setAiTrainingQuestion(e.target.value)}
+                          placeholder="npr: Koliko je dugovanja ukupno?"
+                          className="w-full p-4 rounded-xl modern-input text-lg"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-400 uppercase tracking-wider">Odgovor</label>
+                        <textarea
+                          value={aiTrainingAnswer}
+                          onChange={(e) => setAiTrainingAnswer(e.target.value)}
+                          placeholder="npr: Ukupno dugovanje iznosi X EUR"
+                          className="w-full p-4 rounded-xl modern-input text-lg h-32 resize-none"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (aiTrainingQuestion && aiTrainingAnswer) {
+                            const newData = [...aiTrainingData, { question: aiTrainingQuestion, answer: aiTrainingAnswer }];
+                            setAiTrainingData(newData);
+                            saveToStorage('aiTrainingData', newData);
+                            setAiTrainingQuestion('');
+                            setAiTrainingAnswer('');
+                            logActivity('Dodao AI trening podatak', aiTrainingQuestion);
+                          }
+                        }}
+                        className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:shadow-lg transition-all"
+                      >
+                        <Plus className="inline mr-2" size={20} />
+                        Dodaj
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Import/Export Buttons */}
+                  <div className="mb-8 p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <h4 className="text-lg font-bold mb-4 text-slate-300">Import / Export</h4>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <button
+                        onClick={() => exportAiTrainingData('json')}
+                        className="py-3 px-4 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all font-bold"
+                      >
+                        <Download className="inline mr-2" size={18} />
+                        Export JSON
+                      </button>
+                      <button
+                        onClick={() => exportAiTrainingData('xlsx')}
+                        className="py-3 px-4 rounded-xl bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-white transition-all font-bold"
+                      >
+                        <Download className="inline mr-2" size={18} />
+                        Export Excel
+                      </button>
+                      <button
+                        onClick={() => exportAiTrainingData('xml')}
+                        className="py-3 px-4 rounded-xl bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500 hover:text-white transition-all font-bold"
+                      >
+                        <Download className="inline mr-2" size={18} />
+                        Export XML
+                      </button>
+                      <button
+                        onClick={() => exportAiTrainingData('pdf')}
+                        className="py-3 px-4 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all font-bold"
+                      >
+                        <Download className="inline mr-2" size={18} />
+                        Export PDF
+                      </button>
+                    </div>
+                    <label className="flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-white/10 border border-white/10 text-white font-bold hover:bg-white/20 transition-all cursor-pointer">
+                      <Upload size={20} />
+                      Import podatke (JSON, Excel, XML)
+                      <input
+                        type="file"
+                        accept=".json,.xlsx,.xls,.xml"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) importAiTrainingData(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Training Data List */}
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-bold text-slate-300">Obučeni podaci ({aiTrainingData.length})</h4>
+                    {aiTrainingData.length === 0 ? (
+                      <div className="text-center py-12 text-slate-500">
+                        <Brain size={48} className="mx-auto mb-4 opacity-30" />
+                        <p className="text-lg">Nema obučenih podataka</p>
+                        <p className="text-sm mt-2">Dodajte nove podatke iznad ili importujte postojeće</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                        {aiTrainingData.map((item, idx) => (
+                          <div key={idx} className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-bold text-purple-400 mb-2">Q: {item.question}</p>
+                                <p className="text-sm text-slate-400">A: {item.answer}</p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const newData = aiTrainingData.filter((_, i) => i !== idx);
+                                  setAiTrainingData(newData);
+                                  saveToStorage('aiTrainingData', newData);
+                                  logActivity('Obrisao AI trening podatak', item.question);
+                                }}
+                                className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-all"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -3059,6 +3579,205 @@ export default function DashboardPage() {
           <div 
             className="absolute left-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500/50 transition-colors z-50"
             onMouseDown={() => setIsResizingRight(true)}
+          />
+        </div>
+      )}
+
+      {/* AI Assistant Floating Icon */}
+      {!aiChatOpen && (
+        <button
+          onClick={() => setAiChatOpen(true)}
+          className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 shadow-2xl shadow-purple-500/50 flex items-center justify-center hover:scale-110 transition-all z-50 group"
+        >
+          <MessageCircle className="text-white" size={28} />
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse" />
+        </button>
+      )}
+
+      {/* AI Assistant Chat Window */}
+      {aiChatOpen && (
+        <div
+          className="fixed glass-card shadow-2xl border border-white/20 flex flex-col z-50"
+          style={{
+            left: `${aiChatX}px`,
+            top: `${aiChatY}px`,
+            width: `${aiChatWidth}px`,
+            height: `${aiChatHeight}px`,
+            minWidth: '350px',
+            minHeight: '400px',
+            maxWidth: '90vw',
+            maxHeight: '90vh'
+          }}
+        >
+          {/* Chat Header with Drag */}
+          <div
+            className="p-4 border-b border-white/10 flex items-center justify-between cursor-move bg-gradient-to-r from-purple-600/20 to-pink-600/20"
+            onMouseDown={(e) => {
+              setIsAiDragging(true);
+              setAiDragStart({ x: e.clientX - aiChatX, y: e.clientY - aiChatY });
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                <Brain className="text-white" size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-lg">AI Asistent za Isplate</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[10px] font-bold">
+                    ✨ GEMINI
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">Powered by Google Gemini AI</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setAiChatOpen(false)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {aiChatMessages.length === 0 && (
+              <div className="text-center py-12 text-slate-500">
+                <Brain size={48} className="mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-bold mb-2">Dobrodošli u AI Asistent</p>
+                <p className="text-sm">Pitajte me o isplatama, dobavljačima, hotelima ili bilo čemu drugom!</p>
+                <div className="mt-6 space-y-2 text-left max-w-md mx-auto">
+                  <p className="text-xs text-slate-600">Primeri pitanja:</p>
+                  <div className="text-xs space-y-1 text-slate-500">
+                    <p>• "Koliko je ukupno isplata?"</p>
+                    <p>• "Koje isplate su na čekanju?"</p>
+                    <p>• "Koliko hotela imam?"</p>
+                    <p>• "Isplate danas?"</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {aiChatMessages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[80%] p-3 rounded-2xl ${
+                    msg.role === 'user'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                      : 'bg-white/10 border border-white/10'
+                  }`}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                </div>
+              </div>
+            ))}
+            {aiIsLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] p-3 rounded-2xl bg-white/10 border border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <span className="text-xs text-slate-400 ml-2">AI razmišlja...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input */}
+          <div className="p-4 border-t border-white/10">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={aiInputMessage}
+                onChange={(e) => setAiInputMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && !aiIsLoading && handleAiSend()}
+                placeholder={aiIsLoading ? "AI razmišlja..." : "Unesite pitanje..."}
+                disabled={aiIsLoading}
+                className="flex-1 p-3 rounded-xl modern-input text-sm disabled:opacity-50"
+              />
+              <button
+                onClick={handleAiSend}
+                disabled={aiIsLoading}
+                className="px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Resize Handles */}
+          {/* Top Left */}
+          <div
+            className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('nw');
+            }}
+          />
+          {/* Top Right */}
+          <div
+            className="absolute top-0 right-0 w-4 h-4 cursor-nesw-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('ne');
+            }}
+          />
+          {/* Bottom Left */}
+          <div
+            className="absolute bottom-0 left-0 w-4 h-4 cursor-nesw-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('sw');
+            }}
+          />
+          {/* Bottom Right */}
+          <div
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('se');
+            }}
+          />
+          {/* Top */}
+          <div
+            className="absolute top-0 left-4 right-4 h-2 cursor-ns-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('n');
+            }}
+          />
+          {/* Bottom */}
+          <div
+            className="absolute bottom-0 left-4 right-4 h-2 cursor-ns-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('s');
+            }}
+          />
+          {/* Left */}
+          <div
+            className="absolute left-0 top-4 bottom-4 w-2 cursor-ew-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('w');
+            }}
+          />
+          {/* Right */}
+          <div
+            className="absolute right-0 top-4 bottom-4 w-2 cursor-ew-resize"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsAiResizing(true);
+              setAiResizeDirection('e');
+            }}
           />
         </div>
       )}

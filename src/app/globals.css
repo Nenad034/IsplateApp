@@ -10,6 +10,15 @@
   --shadow-lg: 0 10px 25px rgba(0,0,0,0.2);
 }
 
+/* Smanjenje font-size za 21% globalno (bilo 34%, povećano za 20%) */
+html {
+  font-size: 79%; /* 21% manje od default 16px = 12.64px */
+}
+
+body {
+  font-size: 1rem; /* Sada je 12.64px umesto 16px */
+}
+
 /* --- THEME DEFINITIONS --- */
 
 /* Modern Dark (Deep Blue/Slate) */
