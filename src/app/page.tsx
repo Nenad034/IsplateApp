@@ -494,7 +494,7 @@ export default function DashboardPage() {
       supplierId: paymentForm.supplierId || '',
       hotelId: paymentForm.hotelId || '',
       amount: paymentForm.amount || 0,
-      currency: paymentForm.currency || 'USD',
+      currency: paymentForm.currency || 'EUR',
       date: paymentForm.date || new Date().toISOString().split('T')[0],
       description: paymentForm.description || '',
       status: paymentForm.status || 'pending',
@@ -526,7 +526,7 @@ export default function DashboardPage() {
           supplierId: '',
           hotelId: '',
           amount: 0,
-          currency: 'USD',
+          currency: 'EUR',
           date: new Date().toISOString().split('T')[0],
           description: '',
           status: 'pending',
@@ -1640,7 +1640,7 @@ export default function DashboardPage() {
                           supplierId: '',
                           hotelId: '',
                           amount: 0,
-                          currency: 'USD',
+                          currency: 'EUR',
                           date: new Date().toISOString().split('T')[0],
                           description: '',
                           status: 'pending',
@@ -1699,7 +1699,7 @@ export default function DashboardPage() {
                       </div>
                       {paymentForm.amount ? (
                         <p className="text-xs font-bold text-blue-400 mt-1">
-                          Pregled: {formatCurrency(paymentForm.amount, paymentForm.currency || 'USD')}
+                          Pregled: {formatCurrency(paymentForm.amount, paymentForm.currency || 'EUR')}
                         </p>
                       ) : null}
                     </div>
@@ -1729,7 +1729,7 @@ export default function DashboardPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Valuta</label>
                     <select
-                      value={paymentForm.currency || 'USD'}
+                      value={paymentForm.currency || 'EUR'}
                       onChange={(e) => setPaymentForm({ ...paymentForm, currency: e.target.value as Currency })}
                       className="w-full p-4 rounded-2xl modern-input text-lg"
                     >

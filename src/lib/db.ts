@@ -40,7 +40,7 @@ export const payments = sqliteTable('payments', {
   supplierId: text('supplier_id').notNull(),
   hotelId: text('hotel_id').notNull(),
   amount: real('amount').notNull(),
-  currency: text('currency').default('USD'),
+  currency: text('currency').default('EUR'),
   date: text('date').notNull(),
   description: text('description').notNull(),
   status: text('status').default('pending'),
