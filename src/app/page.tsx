@@ -37,6 +37,7 @@ interface Hotel {
   phone: string;
   manager: string;
   country: string;
+  supplierId?: string;
   contactPerson?: string;
   latitude?: number;
   longitude?: number;
@@ -167,6 +168,7 @@ export default function DashboardPage() {
     phone: '',
     manager: '',
     country: '',
+    supplierId: '',
     contactPerson: '',
     latitude: undefined,
     longitude: undefined,
@@ -420,6 +422,8 @@ export default function DashboardPage() {
       phone: hotelForm.phone || '',
       manager: hotelForm.manager || '',
       country: hotelForm.country || '',
+      supplierId: hotelForm.supplierId || '',
+      contactPerson: hotelForm.contactPerson || '',
       latitude: hotelForm.latitude,
       longitude: hotelForm.longitude,
     };
@@ -438,7 +442,7 @@ export default function DashboardPage() {
         const updatedHotels = await (await fetch('/api/hotels')).json();
         setHotels(Array.isArray(updatedHotels) ? updatedHotels : []);
         logActivity(editingId ? 'Izmenio hotel' : 'Dodao hotel', hotelForm.name);
-        setHotelForm({ name: '', city: '', rooms: 0, phone: '', manager: '', country: '', latitude: undefined, longitude: undefined });
+        setHotelForm({ name: '', city: '', rooms: 0, phone: '', manager: '', country: '', supplierId: '', contactPerson: '', latitude: undefined, longitude: undefined });
         setEditingId(null);
         setGeoLocationData(null);
       } else {
@@ -2205,6 +2209,21 @@ export default function DashboardPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Naziv hotela</label>
                     <input type="text" placeholder="Ime hotela" value={hotelForm.name || ''} onChange={(e) => setHotelForm({ ...hotelForm, name: e.target.value })} className="w-full p-4 rounded-2xl modern-input text-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Dobavljač</label>
+                    <select
+                      value={hotelForm.supplierId || ''}
+                      onChange={(e) => setHotelForm({ ...hotelForm, supplierId: e.target.value })}
+                      className="w-full p-4 rounded-2xl modern-input text-lg"
+                    >
+                      <option value="">Izaberite dobavljača</option>
+                      {suppliers.filter(s => !s.deleted).map(supplier => (
+                        <option key={supplier.id} value={supplier.id}>
+                          {supplier.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Grad</label>

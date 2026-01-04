@@ -26,6 +26,7 @@ export const hotels = sqliteTable('hotels', {
   rooms: integer('rooms').notNull(),
   phone: text('phone').notNull(),
   manager: text('manager').notNull(),
+  supplierId: text('supplier_id'),
   contactPerson: text('contact_person'),
   latitude: real('latitude'),
   longitude: real('longitude'),
