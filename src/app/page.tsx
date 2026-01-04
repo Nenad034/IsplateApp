@@ -118,6 +118,9 @@ export default function DashboardPage() {
   const [settingsView, setSettingsView] = useState<'general' | 'logs' | 'deleted'>('general');
   const [showDeletedItems, setShowDeletedItems] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [logsLimit, setLogsLimit] = useState(50);
+  const [logsFromDate, setLogsFromDate] = useState('');
+  const [logsToDate, setLogsToDate] = useState('');
 
   useEffect(() => {
     if (activeTab !== 'overview') {
@@ -2428,7 +2431,12 @@ export default function DashboardPage() {
               {/* Tab Navigation */}
               <div className="flex gap-2 p-2 bg-white/5 rounded-2xl border border-white/10">
                 <button
-                  onClick={() => setSettingsView('general')}
+                  onClick={() => {
+                    setSettingsView('general');
+                    setLogsLimit(50);
+                    setLogsFromDate('');
+                    setLogsToDate('');
+                  }}
                   className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
                     settingsView === 'general' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'
                   }`}
@@ -2439,7 +2447,10 @@ export default function DashboardPage() {
                 {currentUser?.role === 1 && (
                   <>
                     <button
-                      onClick={() => setSettingsView('logs')}
+                      onClick={() => {
+                        setSettingsView('logs');
+                        setLogsLimit(50);
+                      }}
                       className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
                         settingsView === 'logs' ? 'bg-purple-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'
                       }`}
@@ -2448,7 +2459,12 @@ export default function DashboardPage() {
                       Logovi
                     </button>
                     <button
-                      onClick={() => setSettingsView('deleted')}
+                      onClick={() => {
+                        setSettingsView('deleted');
+                        setLogsLimit(50);
+                        setLogsFromDate('');
+                        setLogsToDate('');
+                      }}
                       className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
                         settingsView === 'deleted' ? 'bg-red-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'
                       }`}
@@ -2616,28 +2632,137 @@ export default function DashboardPage() {
               {/* Logs View - Admin Only */}
               {settingsView === 'logs' && currentUser?.role === 1 && (
                 <div className="glass-card p-8">
-                  <h3 className="text-2xl font-bold mb-8 flex items-center gap-3">
+                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
                     <Activity className="text-purple-400" /> Sistem Logova
                   </h3>
+                  
+                  {/* Date Filters */}
+                  <div className="mb-8 p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <h4 className="text-lg font-bold mb-4 text-slate-300">Filtriranje po datumu</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Od datuma</label>
+                        <input
+                          type="date"
+                          value={logsFromDate}
+                          onChange={(e) => setLogsFromDate(e.target.value)}
+                          className="w-full p-3 rounded-xl modern-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Do datuma</label>
+                        <input
+                          type="date"
+                          value={logsToDate}
+                          onChange={(e) => setLogsToDate(e.target.value)}
+                          className="w-full p-3 rounded-xl modern-input"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        onClick={() => {
+                          setLogsFromDate('');
+                          setLogsToDate('');
+                          setLogsLimit(50);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-slate-600 hover:bg-slate-500 transition-all font-semibold"
+                      >
+                        Resetuj filtere
+                      </button>
+                      <div className="text-sm text-slate-400 flex items-center">
+                        Prikazano: {(() => {
+                          const filtered = activityLogs.filter(log => {
+                            if (!logsFromDate && !logsToDate) return true;
+                            const logDate = new Date(log.timestamp);
+                            const from = logsFromDate ? new Date(logsFromDate) : null;
+                            const to = logsToDate ? new Date(logsToDate) : null;
+                            
+                            if (from) from.setHours(0, 0, 0, 0);
+                            if (to) to.setHours(23, 59, 59, 999);
+                            
+                            if (from && to) return logDate >= from && logDate <= to;
+                            if (from) return logDate >= from;
+                            if (to) return logDate <= to;
+                            return true;
+                          });
+                          return Math.min(filtered.length, logsLimit);
+                        })()} / {activityLogs.length} logova
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Logs List */}
                   <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                    {activityLogs.map((log) => (
-                      <div key={log.id} className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Activity size={18} className="text-purple-400" />
-                              <p className="text-xl font-bold">{log.action}</p>
-                            </div>
-                            <p className="text-base text-slate-400 mb-2">{log.details}</p>
-                            <div className="flex items-center gap-4 text-sm text-slate-500">
-                              <span>👤 {log.user}</span>
-                              <span>🕐 {new Date(log.timestamp).toLocaleString('sr-RS')}</span>
+                    {(() => {
+                      const filtered = activityLogs.filter(log => {
+                        if (!logsFromDate && !logsToDate) return true;
+                        const logDate = new Date(log.timestamp);
+                        const from = logsFromDate ? new Date(logsFromDate) : null;
+                        const to = logsToDate ? new Date(logsToDate) : null;
+                        
+                        if (from) from.setHours(0, 0, 0, 0);
+                        if (to) to.setHours(23, 59, 59, 999);
+                        
+                        if (from && to) return logDate >= from && logDate <= to;
+                        if (from) return logDate >= from;
+                        if (to) return logDate <= to;
+                        return true;
+                      }).slice(0, logsLimit);
+                      
+                      return filtered.length > 0 ? filtered.map((log) => (
+                        <div key={log.id} className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <Activity size={18} className="text-purple-400" />
+                                <p className="text-xl font-bold">{log.action}</p>
+                              </div>
+                              <p className="text-base text-slate-400 mb-2">{log.details}</p>
+                              <div className="flex items-center gap-4 text-sm text-slate-500">
+                                <span>👤 {log.user}</span>
+                                <span>🕐 {new Date(log.timestamp).toLocaleString('sr-RS')}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )) : (
+                        <div className="text-center py-12 text-slate-500">
+                          <Activity size={48} className="mx-auto mb-4 opacity-30" />
+                          <p className="text-xl">Nema logova za prikazane filtere</p>
+                        </div>
+                      );
+                    })()}
                   </div>
+                  
+                  {/* Load More Button */}
+                  {(() => {
+                    const filtered = activityLogs.filter(log => {
+                      if (!logsFromDate && !logsToDate) return true;
+                      const logDate = new Date(log.timestamp);
+                      const from = logsFromDate ? new Date(logsFromDate) : null;
+                      const to = logsToDate ? new Date(logsToDate) : null;
+                      
+                      if (from) from.setHours(0, 0, 0, 0);
+                      if (to) to.setHours(23, 59, 59, 999);
+                      
+                      if (from && to) return logDate >= from && logDate <= to;
+                      if (from) return logDate >= from;
+                      if (to) return logDate <= to;
+                      return true;
+                    });
+                    
+                    return filtered.length > logsLimit && (
+                      <div className="mt-6 text-center">
+                        <button
+                          onClick={() => setLogsLimit(prev => prev + 50)}
+                          className="px-8 py-4 rounded-2xl bg-purple-500 hover:bg-purple-600 transition-all font-bold text-lg"
+                        >
+                          Prikaži još ({filtered.length - logsLimit} preostalih)
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
