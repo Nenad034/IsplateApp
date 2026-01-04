@@ -79,6 +79,18 @@ Otvori [http://localhost:3000](http://localhost:3000) u pregledniku.
 - Kreiranje korisnika: `npm run create-user` (koristi `EMAIL/PASSWORD/NAME/ROLE` env var)
 - Reset lozinke: `npm run reset-password` (koristi `EMAIL/PASSWORD` env var)
 
+## ☁️ Deploy (VPS/Cloud) 
+
+Preporuka za ovaj projekat (zbog SQLite) je VPS/container (Docker), ne serverless.
+
+1) Na serveru kloniraj repo i napravi `.env` (možeš krenuti od `.env.example`)
+2) Pokreni:
+  - `docker compose up -d --build`
+3) Inicijalizuj bazu (prvi put):
+  - `docker compose exec web npm run setup-db`
+
+Napomena: SQLite fajl se čuva u folderu `./prisma` kroz volume mount, pa ostaje sačuvan kroz restarte.
+
 ## 📱 Struktura aplikacije
 
 ### Levi sidebar

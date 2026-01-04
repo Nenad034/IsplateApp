@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # Use an absolute path inside the container
+      SQLITE_DB_PATH: /app/prisma/dev.db
+    volumes:
+      - ./prisma:/app/prisma
+    restart: unless-stopped
