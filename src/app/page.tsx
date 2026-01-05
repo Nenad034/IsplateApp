@@ -1049,12 +1049,12 @@ export default function DashboardPage() {
           for (const item of data) {
             const newSupplier: Supplier = {
               id: String(item.id || `${Date.now()}-${Math.random()}`),
-              name: item.name || item.Naziv || '',
-              email: item.email || item.Email || '',
-              phone: item.phone || item.Telefon || '',
-              address: item.address || item.Adresa || '',
-              bankAccount: item.bankAccount || item.ZiroRacun || '',
-              country: item.country || item.Drzava || ''
+              name: String(item.name || item.Naziv || ''),
+              email: String(item.email || item.Email || ''),
+              phone: String(item.phone || item.Telefon || ''),
+              address: String(item.address || item.Adresa || ''),
+              bankAccount: String(item.bankAccount || item.ZiroRacun || ''),
+              country: String(item.country || item.Drzava || '')
             };
             await fetch('/api/suppliers', {
               method: 'POST',
@@ -1067,12 +1067,12 @@ export default function DashboardPage() {
           for (const item of data) {
             const newHotel: Hotel = {
               id: String(item.id || `${Date.now()}-${Math.random()}`),
-              name: item.name || item.Naziv || '',
-              city: item.city || item.Grad || '',
+              name: String(item.name || item.Naziv || ''),
+              city: String(item.city || item.Grad || ''),
               rooms: Number(item.rooms || item.Sobe || 0),
-              phone: item.phone || item.Telefon || '',
-              manager: item.manager || item.Menadzer || '',
-              country: item.country || item.Drzava || ''
+              phone: String(item.phone || item.Telefon || ''),
+              manager: String(item.manager || item.Menadzer || ''),
+              country: String(item.country || item.Drzava || '')
             };
             await fetch('/api/hotels', {
               method: 'POST',
