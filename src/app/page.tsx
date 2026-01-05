@@ -1048,7 +1048,7 @@ export default function DashboardPage() {
         if (importTarget === 'suppliers') {
           for (const item of data) {
             const newSupplier: Supplier = {
-              id: item.id || `${Date.now()}-${Math.random()}`,
+              id: String(item.id || `${Date.now()}-${Math.random()}`),
               name: item.name || item.Naziv || '',
               email: item.email || item.Email || '',
               phone: item.phone || item.Telefon || '',
@@ -1066,7 +1066,7 @@ export default function DashboardPage() {
         } else {
           for (const item of data) {
             const newHotel: Hotel = {
-              id: item.id || `${Date.now()}-${Math.random()}`,
+              id: String(item.id || `${Date.now()}-${Math.random()}`),
               name: item.name || item.Naziv || '',
               city: item.city || item.Grad || '',
               rooms: Number(item.rooms || item.Sobe || 0),
