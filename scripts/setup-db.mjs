@@ -1,102 +1,130 @@
-import Database from 'better-sqlite3';
-import path from 'node:path';
+import { neon } from '@neondatabase/serverless';
 import bcrypt from 'bcryptjs';
+import 'dotenv/config';
 
-const dbPath = path.join(process.cwd(), 'prisma', 'dev.db');
-const db = new Database(dbPath);
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL environment variable is not set');
+  console.error('Please add DATABASE_URL to your .env file');
+  process.exit(1);
+}
 
-console.log('Initializing database at:', dbPath);
+const sql = neon(process.env.DATABASE_URL);
+
+console.log('🔄 Initializing PostgreSQL database...');
 
 const hashedAdminPassword = bcrypt.hashSync('admin123', 10);
 
-// Use milliseconds for timestamp columns to match Drizzle `mode: "timestamp"`.
-const nowMsSql = "(CAST(strftime('%s','now') AS INTEGER) * 1000)";
+try {
+  // Drop existing tables (be careful in production!)
+  await sql`DROP TABLE IF EXISTS activity_logs CASCADE`;
+  await sql`DROP TABLE IF EXISTS payments CASCADE`;
+  await sql`DROP TABLE IF EXISTS hotels CASCADE`;
+  await sql`DROP TABLE IF EXISTS suppliers CASCADE`;
+  await sql`DROP TABLE IF EXISTS users CASCADE`;
 
-db.exec(`
-  DROP TABLE IF EXISTS activity_logs;
+  // Create suppliers table
+  await sql`
+    CREATE TABLE suppliers (
+      id VARCHAR(255) PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      address TEXT NOT NULL,
+      bank_account TEXT NOT NULL,
+      contact_person TEXT,
+      latitude NUMERIC,
+      longitude NUMERIC,
+      country TEXT,
+      deleted BOOLEAN DEFAULT false,
+      deleted_at TIMESTAMP,
+      deleted_by TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
 
-  CREATE TABLE IF NOT EXISTS suppliers (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    address TEXT NOT NULL,
-    bank_account TEXT NOT NULL,
-    contact_person TEXT,
-    latitude REAL,
-    longitude REAL,
-    country TEXT,
-    deleted INTEGER DEFAULT 0,
-    deleted_at INTEGER,
-    deleted_by TEXT,
-    created_at INTEGER DEFAULT ${nowMsSql}
-  );
+  // Create hotels table
+  await sql`
+    CREATE TABLE hotels (
+      id VARCHAR(255) PRIMARY KEY,
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      country TEXT NOT NULL,
+      rooms INTEGER NOT NULL,
+      phone TEXT NOT NULL,
+      manager TEXT NOT NULL,
+      supplier_id VARCHAR(255),
+      contact_person TEXT,
+      latitude NUMERIC,
+      longitude NUMERIC,
+      deleted BOOLEAN DEFAULT false,
+      deleted_at TIMESTAMP,
+      deleted_by TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
 
-  CREATE TABLE IF NOT EXISTS hotels (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    city TEXT NOT NULL,
-    country TEXT NOT NULL,
-    rooms INTEGER NOT NULL,
-    phone TEXT NOT NULL,
-    manager TEXT NOT NULL,
-    supplier_id TEXT,
-    contact_person TEXT,
-    latitude REAL,
-    longitude REAL,
-    deleted INTEGER DEFAULT 0,
-    deleted_at INTEGER,
-    deleted_by TEXT,
-    created_at INTEGER DEFAULT ${nowMsSql}
-  );
+  // Create payments table
+  await sql`
+    CREATE TABLE payments (
+      id VARCHAR(255) PRIMARY KEY,
+      supplier_id VARCHAR(255) NOT NULL,
+      hotel_id VARCHAR(255) NOT NULL,
+      amount NUMERIC NOT NULL,
+      currency TEXT DEFAULT 'EUR',
+      date TEXT NOT NULL,
+      description TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      due_date TEXT,
+      document_type TEXT,
+      document_number TEXT,
+      method TEXT NOT NULL,
+      bank_name TEXT,
+      service_type TEXT,
+      realization_year INTEGER,
+      reservations TEXT DEFAULT '[]',
+      deleted BOOLEAN DEFAULT false,
+      deleted_at TIMESTAMP,
+      deleted_by TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
 
-  CREATE TABLE IF NOT EXISTS payments (
-    id TEXT PRIMARY KEY,
-    supplier_id TEXT NOT NULL,
-    hotel_id TEXT NOT NULL,
-    amount REAL NOT NULL,
-    currency TEXT DEFAULT 'EUR',
-    date TEXT NOT NULL,
-    description TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    due_date TEXT,
-    document_type TEXT,
-    document_number TEXT,
-    method TEXT NOT NULL,
-    bank_name TEXT,
-    service_type TEXT,
-    realization_year INTEGER,
-    reservations TEXT DEFAULT '[]',
-    deleted INTEGER DEFAULT 0,
-    deleted_at INTEGER,
-    deleted_by TEXT,
-    created_at INTEGER DEFAULT ${nowMsSql}
-  );
+  // Create users table
+  await sql`
+    CREATE TABLE users (
+      id VARCHAR(255) PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password TEXT,
+      role INTEGER DEFAULT 3,
+      last_login TIMESTAMP DEFAULT NOW(),
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
 
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    password TEXT,
-    role INTEGER DEFAULT 3,
-    last_login INTEGER DEFAULT ${nowMsSql},
-    created_at INTEGER DEFAULT ${nowMsSql}
-  );
+  // Create activity_logs table
+  await sql`
+    CREATE TABLE activity_logs (
+      id VARCHAR(255) PRIMARY KEY,
+      action TEXT NOT NULL,
+      details TEXT NOT NULL,
+      "user" TEXT NOT NULL,
+      timestamp TIMESTAMP DEFAULT NOW()
+    )
+  `;
 
-  CREATE TABLE IF NOT EXISTS activity_logs (
-    id TEXT PRIMARY KEY,
-    action TEXT NOT NULL,
-    details TEXT NOT NULL,
-    user TEXT NOT NULL,
-    timestamp INTEGER DEFAULT ${nowMsSql}
-  );
-`);
+  // Insert admin user
+  await sql`
+    INSERT INTO users (id, name, email, password, role)
+    VALUES ('1', 'Admin Korisnik', 'admin@isplate.rs', ${hashedAdminPassword}, 1)
+    ON CONFLICT (email) DO NOTHING
+  `;
 
-const insertAdmin = db.prepare(
-  'INSERT OR IGNORE INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)'
-);
+  console.log('✅ Database tables created successfully');
+  console.log('✅ Admin user created: admin@isplate.rs / admin123');
+  
+} catch (error) {
+  console.error('❌ Database initialization failed:', error);
+  process.exit(1);
+}
 
-insertAdmin.run('1', 'Admin Korisnik', 'admin@isplate.rs', hashedAdminPassword, 1);
-
-console.log('Database tables created successfully.');
-db.close();

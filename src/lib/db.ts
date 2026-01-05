@@ -1,46 +1,46 @@
 import { sql } from 'drizzle-orm';
-import { text, integer, real, sqliteTable } from 'drizzle-orm/sqlite-core';
+import { text, varchar, integer, numeric, boolean, timestamp, pgTable } from 'drizzle-orm/pg-core';
 
-export const suppliers = sqliteTable('suppliers', {
-  id: text('id').primaryKey(),
+export const suppliers = pgTable('suppliers', {
+  id: varchar('id', { length: 255 }).primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull(),
   phone: text('phone').notNull(),
   address: text('address').notNull(),
   bankAccount: text('bank_account').notNull(),
   contactPerson: text('contact_person'),
-  latitude: real('latitude'),
-  longitude: real('longitude'),
+  latitude: numeric('latitude'),
+  longitude: numeric('longitude'),
   country: text('country'),
-  deleted: integer('deleted', { mode: 'boolean' }).default(false),
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deleted: boolean('deleted').default(false),
+  deletedAt: timestamp('deleted_at'),
   deletedBy: text('deleted_by'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const hotels = sqliteTable('hotels', {
-  id: text('id').primaryKey(),
+export const hotels = pgTable('hotels', {
+  id: varchar('id', { length: 255 }).primaryKey(),
   name: text('name').notNull(),
   city: text('city').notNull(),
   country: text('country').notNull(),
   rooms: integer('rooms').notNull(),
   phone: text('phone').notNull(),
   manager: text('manager').notNull(),
-  supplierId: text('supplier_id'),
+  supplierId: varchar('supplier_id', { length: 255 }),
   contactPerson: text('contact_person'),
-  latitude: real('latitude'),
-  longitude: real('longitude'),
-  deleted: integer('deleted', { mode: 'boolean' }).default(false),
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  latitude: numeric('latitude'),
+  longitude: numeric('longitude'),
+  deleted: boolean('deleted').default(false),
+  deletedAt: timestamp('deleted_at'),
   deletedBy: text('deleted_by'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const payments = sqliteTable('payments', {
-  id: text('id').primaryKey(),
-  supplierId: text('supplier_id').notNull(),
-  hotelId: text('hotel_id').notNull(),
-  amount: real('amount').notNull(),
+export const payments = pgTable('payments', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  supplierId: varchar('supplier_id', { length: 255 }).notNull(),
+  hotelId: varchar('hotel_id', { length: 255 }).notNull(),
+  amount: numeric('amount').notNull(),
   currency: text('currency').default('EUR'),
   date: text('date').notNull(),
   description: text('description').notNull(),
@@ -53,26 +53,26 @@ export const payments = sqliteTable('payments', {
   serviceType: text('service_type'),
   realizationYear: integer('realization_year'),
   reservations: text('reservations').default('[]'), // JSON array as string
-  deleted: integer('deleted', { mode: 'boolean' }).default(false),
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deleted: boolean('deleted').default(false),
+  deletedAt: timestamp('deleted_at'),
   deletedBy: text('deleted_by'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
+export const users = pgTable('users', {
+  id: varchar('id', { length: 255 }).primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   password: text('password'),
   role: integer('role').default(3),
-  lastLogin: integer('last_login', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  lastLogin: timestamp('last_login').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const activityLogs = sqliteTable('activity_logs', {
-  id: text('id').primaryKey(),
+export const activityLogs = pgTable('activity_logs', {
+  id: varchar('id', { length: 255 }).primaryKey(),
   action: text('action').notNull(),
   details: text('details').notNull(),
   user: text('user').notNull(),
-  timestamp: integer('timestamp', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  timestamp: timestamp('timestamp').defaultNow(),
 });
