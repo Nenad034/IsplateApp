@@ -22,9 +22,13 @@ db.exec(`
     phone TEXT NOT NULL,
     address TEXT NOT NULL,
     bank_account TEXT NOT NULL,
+    contact_person TEXT,
     latitude REAL,
     longitude REAL,
     country TEXT,
+    deleted INTEGER DEFAULT 0,
+    deleted_at INTEGER,
+    deleted_by TEXT,
     created_at INTEGER DEFAULT ${nowMsSql}
   );
 
@@ -36,8 +40,13 @@ db.exec(`
     rooms INTEGER NOT NULL,
     phone TEXT NOT NULL,
     manager TEXT NOT NULL,
+    supplier_id TEXT,
+    contact_person TEXT,
     latitude REAL,
     longitude REAL,
+    deleted INTEGER DEFAULT 0,
+    deleted_at INTEGER,
+    deleted_by TEXT,
     created_at INTEGER DEFAULT ${nowMsSql}
   );
 
@@ -46,15 +55,21 @@ db.exec(`
     supplier_id TEXT NOT NULL,
     hotel_id TEXT NOT NULL,
     amount REAL NOT NULL,
-    currency TEXT DEFAULT 'USD',
+    currency TEXT DEFAULT 'EUR',
     date TEXT NOT NULL,
     description TEXT NOT NULL,
     status TEXT DEFAULT 'pending',
+    due_date TEXT,
+    document_type TEXT,
+    document_number TEXT,
     method TEXT NOT NULL,
     bank_name TEXT,
     service_type TEXT,
     realization_year INTEGER,
     reservations TEXT DEFAULT '[]',
+    deleted INTEGER DEFAULT 0,
+    deleted_at INTEGER,
+    deleted_by TEXT,
     created_at INTEGER DEFAULT ${nowMsSql}
   );
 

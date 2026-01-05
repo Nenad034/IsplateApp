@@ -243,15 +243,22 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     try {
       const showDelQuery = showDeletedItems ? '?showDeleted=true' : '';
-      const [suppliersData, hotelsData, paymentsData, logsData, usersData] = await Promise.all([
+      const promises = [
         fetchAndParse(`/api/suppliers${showDelQuery}`),
         fetchAndParse(`/api/hotels${showDelQuery}`),
         fetchAndParse(`/api/payments${showDelQuery}`),
         fetchAndParse('/api/activity-logs'),
-        fetchAndParse('/api/users'),
-      ]);
+      ];
+      
+      // Only fetch users if current user is Admin (role 1)
+      if (currentUser?.role === 1) {
+        promises.push(fetchAndParse('/api/users'));
+      }
 
-      if (!suppliersData || !hotelsData || !paymentsData || !logsData || !usersData) {
+      const results = await Promise.all(promises);
+      const [suppliersData, hotelsData, paymentsData, logsData, usersData] = results;
+
+      if (!suppliersData || !hotelsData || !paymentsData || !logsData) {
         return;
       }
 
@@ -259,11 +266,14 @@ export default function DashboardPage() {
       setHotels(Array.isArray(hotelsData) ? hotelsData : []);
       setPayments(Array.isArray(paymentsData) ? paymentsData : []);
       setActivityLogs(Array.isArray(logsData) ? logsData : []);
-      setUsers(Array.isArray(usersData) ? usersData : []);
+      // Only set users if we fetched them (Admin only)
+      if (usersData) {
+        setUsers(Array.isArray(usersData) ? usersData : []);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
-  }, [fetchAndParse, showDeletedItems]);
+  }, [fetchAndParse, showDeletedItems, currentUser?.role]);
 
   const fetchSuppliers = async () => {
     try {
@@ -368,7 +378,11 @@ export default function DashboardPage() {
     const originalFetch = window.fetch;
     const wrappedFetch: typeof fetch = async (input, init) => {
       const response = await originalFetch(input, init);
-      const requestUrl = typeof input === 'string' ? input : input?.url;
+      const requestUrl = typeof input === 'string' 
+        ? input 
+        : input instanceof Request 
+          ? input.url 
+          : input.toString();
       if (
         response.status === 401 &&
         requestUrl?.startsWith(window.location.origin + '/api/') &&
