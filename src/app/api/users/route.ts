@@ -3,19 +3,6 @@ import { db } from '@/lib/drizzle';
 import { users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { hashPassword, requireAuth } from '@/lib/auth';
-import Database from 'better-sqlite3';
-import bcrypt from 'bcryptjs';
-
-const dbSqlite = new Database('./prisma/dev.db');
-const email = 'nenad.tomic@olympic.rs';
-const newPassword = 'milica1403#';
-
-const hash = bcrypt.hashSync(newPassword, 10);
-const stmt = dbSqlite.prepare('UPDATE users SET password = ? WHERE email = ?');
-const info = stmt.run(hash, email);
-
-console.log(`Updated ${info.changes} user(s).`);
-dbSqlite.close();
 
 export async function GET(request: NextRequest) {
   const auth = requireAuth(request, 1);
